@@ -1,9 +1,7 @@
 package main
 
 import (
-	"github.com/nknorg/nnet"
 	"github.com/nknorg/nnet/node"
-	"github.com/nknorg/nnet/util"
 	"golang.org/x/crypto/sha3"
 	"log"
 	"time"
@@ -12,71 +10,65 @@ import (
 )
 
 func main() {
-	h := sha3.New256().Sum([]byte("Hello"))
-	keypair, _ := dht.GenerateKeyPair(h[:32])
-
 	p2pPort := 33333
 	wsPort := 23333
 
-	c := znode.Config{
-		Transport: "tcp",
-		P2pPort:   uint16(p2pPort),
-		Keypair:   keypair,
-		WsPort:    uint16(wsPort),
-	}
-
-	znd, err := znode.NewZnode(c)
-	if err != nil {
-		log.Fatal(err)
-	}
-	znd.Start(true)
-
-	nnets := make([]*nnet.NNet, 0)
+	znets := make([]*znode.Znode, 0)
 
 	for i := 0; i < 10; i++ {
-		id, err := util.RandBytes(32)
-		if err != nil {
-			log.Fatal(err)
-			return
+		h := sha3.New256().Sum([]byte("Hello" + string(rune(i))))
+		keypair, _ := dht.GenerateKeyPair(h[:32])
+
+		p2p := p2pPort + i
+		ws := wsPort + i
+
+		c := znode.Config{
+			Transport: "tcp",
+			P2pPort:   uint16(p2p),
+			Keypair:   keypair,
+			WsPort:    uint16(ws),
 		}
 
-		nn, err := znode.Create("tcp", uint16(p2pPort+i+1), id)
+		znd, err := znode.NewZnode(c)
 		if err != nil {
 			log.Fatal(err)
-			return
 		}
 
-		nn.MustApplyMiddleware(node.BytesReceived{Func: func(msg, msgID, srcID []byte, remoteNode *node.RemoteNode) ([]byte, bool) {
+		znd.Nnet.MustApplyMiddleware(node.BytesReceived{Func: func(msg, msgID, srcID []byte, remoteNode *node.RemoteNode) ([]byte, bool) {
 			log.Printf("Receive message \"%s\" from %x by %x", string(msg), srcID, remoteNode.Id)
 
-			//_, err = nn.SendBytesRelayReply(msgID, []byte("Well received!"), srcID)
-			//if err != nil {
-			//	log.Fatal(err)
-			//}
+			_, err = znd.Nnet.SendBytesRelayReply(msgID, []byte("Well received!"), srcID)
+			if err != nil {
+				log.Fatal(err)
+			}
 
 			return msg, true
 		}})
 
-		nnets = append(nnets, nn)
+		znets = append(znets, znd)
 	}
 
-	for i := 0; i < len(nnets); i++ {
+	for i := 0; i < len(znets); i++ {
 		time.Sleep(112358 * time.Microsecond)
 
-		err = nnets[i].Start(false)
+		err := znets[i].Start(i == 0)
 		if err != nil {
 			log.Fatal(err)
 			return
 		}
 
-		err = nnets[i].Join(znd.Nnet.GetLocalNode().Addr)
-		if err != nil {
-			log.Fatal(err)
-			return
+		if i > 0 {
+			err = znets[i].Nnet.Join(znets[0].Nnet.GetLocalNode().Addr)
+			if err != nil {
+				log.Fatal(err)
+				return
+			}
 		}
 	}
 
-	resp, id, err := znd.Nnet.SendBytesRelaySync([]byte("Hello"), nnets[0].GetLocalNode().Id)
+	time.Sleep(3 * time.Second)
+
+	resp, id, err := znets[0].Nnet.SendBytesRelaySync([]byte("Hello"), znets[len(znets)-1].Nnet.GetLocalNode().Id)
 	if err != nil {
 		return
 	}

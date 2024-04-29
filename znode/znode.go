@@ -12,7 +12,7 @@ import (
 	"znet/dht"
 )
 
-type znode struct {
+type Znode struct {
 	Nnet    *nnet.NNet
 	keyPair dht.KeyPair
 	vlcConn *net.UDPConn
@@ -29,7 +29,7 @@ type Config struct {
 	vlcAddr   string
 }
 
-func NewZnode(c Config) (*znode, error) {
+func NewZnode(c Config) (*Znode, error) {
 	nn, err := Create(c.Transport, c.P2pPort, c.Keypair.Id())
 	if err != nil {
 		return nil, err
@@ -42,7 +42,7 @@ func NewZnode(c Config) (*znode, error) {
 	conn, err := net.DialUDP("udp", nil, udpAddr)
 	b := make([]byte, 102400)
 
-	return &znode{
+	return &Znode{
 		Nnet:    nn,
 		keyPair: c.Keypair,
 		vlcConn: conn,
@@ -51,7 +51,7 @@ func NewZnode(c Config) (*znode, error) {
 	}, nil
 }
 
-func (z *znode) Start(isCreate bool) error {
+func (z *Znode) Start(isCreate bool) error {
 	go z.startWs(isCreate)
 	return z.Nnet.Start(isCreate)
 }
@@ -71,7 +71,7 @@ func Create(transport string, port uint16, id []byte) (*nnet.NNet, error) {
 	return nn, nil
 }
 
-func (z *znode) readVlc(b []byte) ([]byte, error) {
+func (z *Znode) readVlc(b []byte) ([]byte, error) {
 	_, err := z.vlcConn.Write(b)
 	if err != nil {
 		return nil, err
@@ -85,12 +85,12 @@ func (z *znode) readVlc(b []byte) ([]byte, error) {
 	return buf[:n], nil
 }
 
-func (z *znode) writeVlc(b []byte) error {
+func (z *Znode) writeVlc(b []byte) error {
 	_, err := z.vlcConn.Write(b)
 	return err
 }
 
-func (z *znode) vlc(w http.ResponseWriter, r *http.Request) {
+func (z *Znode) vlc(w http.ResponseWriter, r *http.Request) {
 	var upgrader = websocket.Upgrader{} // use default options
 
 	c, err := upgrader.Upgrade(w, r, nil)
@@ -106,7 +106,7 @@ func (z *znode) vlc(w http.ResponseWriter, r *http.Request) {
 			break
 		}
 
-		log.Printf("recv: %s, type: %s", message, mt)
+		log.Printf("recv: %s, type: %d", message, mt)
 
 		nbrs, err := z.Nnet.GetLocalNode().GetNeighbors(nil)
 		if err != nil {
@@ -128,7 +128,7 @@ func (z *znode) vlc(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (z *znode) startWs(isCreate bool) {
+func (z *Znode) startWs(isCreate bool) {
 	if !isCreate {
 		return
 	}
