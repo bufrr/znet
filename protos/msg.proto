@@ -1,0 +1,49 @@
+syntax = "proto3";
+option go_package = "./";
+
+package message;
+
+
+message Zp2p {
+  uint32 version = 1;
+  ZIdentity type = 2;  // for p2p
+  ZAction action = 3;   // for p2p
+  ZPushType push_type = 4;        // for vlc
+  ZMessage message = 5;
+  bytes public_key = 6;
+  bytes signature = 7;  // for verifying
+}
+
+enum ZIdentity {
+  U_TYPE_CLI = 0;  // client
+  U_TYPE_SER = 1;  // server
+}
+
+enum ZAction {
+  Z_TYPE_READ = 0;  // read
+  Z_TYPE_WRITE = 1;  // write
+}
+
+enum ZPushType {
+  Z_TYPE_DM = 0;   // direct msg
+  Z_TYPE_BC = 1;   // broadcast
+}
+
+// ZMessage
+message ZMessage {
+  bytes id = 1;
+  uint32 version = 2;
+  ZType type = 3;
+  bytes public_key = 4;
+  bytes data = 5;
+  bytes signature = 6;
+  bytes from = 7;
+  bytes to = 8;
+}
+
+enum ZType {
+  Z_TYPE_RNG = 0;
+  Z_TYPE_EVENT = 1;
+  Z_TYPE_CLOCK = 2;
+  Z_TYPE_GATEWAY = 3;
+}
