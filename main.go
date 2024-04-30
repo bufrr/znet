@@ -1,11 +1,15 @@
 package main
 
 import (
+	"github.com/gorilla/websocket"
 	"github.com/nknorg/nnet/node"
+	"github.com/nknorg/nnet/protobuf"
 	"golang.org/x/crypto/sha3"
+	"google.golang.org/protobuf/proto"
 	"log"
 	"time"
 	"znet/dht"
+	pb "znet/protos"
 	"znet/znode"
 )
 
@@ -27,6 +31,8 @@ func main() {
 			P2pPort:   uint16(p2p),
 			Keypair:   keypair,
 			WsPort:    uint16(ws),
+			UdpPort:   8080,
+			VlcAddr:   "127.0.0.1:8080",
 		}
 
 		znd, err := znode.NewZnode(c)
@@ -35,12 +41,45 @@ func main() {
 		}
 
 		znd.Nnet.MustApplyMiddleware(node.BytesReceived{Func: func(msg, msgID, srcID []byte, remoteNode *node.RemoteNode) ([]byte, bool) {
-			log.Printf("Receive message \"%s\" from %x by %x", string(msg), srcID, remoteNode.Id)
-
-			_, err = znd.Nnet.SendBytesRelayReply(msgID, []byte("Well received!"), srcID)
+			zmsg := new(pb.ZMessage)
+			err := proto.Unmarshal(msg, zmsg)
 			if err != nil {
 				log.Fatal(err)
 			}
+
+			_, err = znd.ReqVlc(msg)
+			if err != nil {
+				log.Fatal(err)
+			}
+
+			switch zmsg.Identity {
+			case pb.ZIdentity_U_TYPE_SER:
+				_, err = znd.Nnet.SendBytesBroadcastAsync(msg, protobuf.BROADCAST_TREE)
+				if err != nil {
+					log.Fatal(err)
+				}
+			case pb.ZIdentity_U_TYPE_CLI:
+				znd.VlcTows <- zmsg // send msg to websocket
+
+				resp, err := znd.ReqVlc(msg)
+				if err != nil {
+					log.Fatal(err)
+				}
+				err = proto.Unmarshal(resp, zmsg)
+
+				zmsg.Identity = pb.ZIdentity_U_TYPE_SER
+				msg, err = proto.Marshal(zmsg)
+				if err != nil {
+					log.Fatal(err)
+				}
+
+				_, err = znd.Nnet.SendBytesRelayReply(msgID, resp, srcID)
+				if err != nil {
+					log.Fatal(err)
+				}
+			}
+
+			log.Printf("Receive message \"%s\" from %x by %x", string(zmsg.Data), srcID, remoteNode.Id)
 
 			return msg, true
 		}})
@@ -66,13 +105,31 @@ func main() {
 		}
 	}
 
-	time.Sleep(3 * time.Second)
+	time.Sleep(5 * time.Second)
 
-	resp, id, err := znets[0].Nnet.SendBytesRelaySync([]byte("Hello"), znets[len(znets)-1].Nnet.GetLocalNode().Id)
+	c, _, err := websocket.DefaultDialer.Dial("ws://localhost:23333/vlc23333", nil)
 	if err != nil {
-		return
+		log.Fatal("dial err:", err)
 	}
-	log.Printf("Response: %s from %x", string(resp), id)
+
+	to := znets[2].Nnet.GetLocalNode().Id
+
+	zm := &pb.ZMessage{
+		Action:   pb.ZAction_Z_TYPE_READ,
+		Data:     []byte("Hello, Server!"),
+		Identity: pb.ZIdentity_U_TYPE_CLI,
+		To:       to,
+	}
+
+	data, err := proto.Marshal(zm)
+	if err != nil {
+		log.Fatal("marshaling error: ", err)
+	}
+
+	err = c.WriteMessage(websocket.BinaryMessage, data)
+	if err != nil {
+		log.Fatal("write:", err)
+	}
 
 	select {}
 }

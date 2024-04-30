@@ -1,8 +1,7 @@
 syntax = "proto3";
 option go_package = "./";
 
-package message;
-
+package protos;
 
 message Zp2p {
   uint32 version = 1;
@@ -35,11 +34,12 @@ message ZMessage {
   uint32 version = 2;
   ZType type = 3;
   ZAction action = 4;
-  bytes public_key = 5;
-  bytes data = 6;
-  bytes signature = 7;
-  bytes from = 8;
-  bytes to = 9;
+  ZIdentity identity = 5;
+  bytes public_key = 6;
+  bytes data = 7;
+  bytes signature = 8;
+  bytes from = 9;
+  bytes to = 10;
 }
 
 enum ZType {
