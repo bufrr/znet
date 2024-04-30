@@ -133,11 +133,11 @@ func (z *Znode) vlc(w http.ResponseWriter, r *http.Request) {
 		for {
 			select {
 			case msg := <-z.VlcTows:
-				data, err := proto.Marshal(msg)
-				if err != nil {
-					log.Fatal(err)
-				}
-				err = c.WriteMessage(websocket.BinaryMessage, data)
+				//data, err := proto.Marshal(msg)
+				//if err != nil {
+				//	log.Fatal(err)
+				//}
+				err = c.WriteMessage(websocket.BinaryMessage, msg.Data)
 				if err != nil {
 					log.Println("ws write err:", err)
 					break

@@ -1,7 +1,6 @@
 package main
 
 import (
-	"github.com/gorilla/websocket"
 	"github.com/nknorg/nnet/node"
 	"github.com/nknorg/nnet/protobuf"
 	"golang.org/x/crypto/sha3"
@@ -103,32 +102,6 @@ func main() {
 				return
 			}
 		}
-	}
-
-	time.Sleep(5 * time.Second)
-
-	c, _, err := websocket.DefaultDialer.Dial("ws://localhost:23333/vlc23333", nil)
-	if err != nil {
-		log.Fatal("dial err:", err)
-	}
-
-	to := znets[2].Nnet.GetLocalNode().Id
-
-	zm := &pb.ZMessage{
-		Action:   pb.ZAction_Z_TYPE_READ,
-		Data:     []byte("Hello, Server!"),
-		Identity: pb.ZIdentity_U_TYPE_CLI,
-		To:       to,
-	}
-
-	data, err := proto.Marshal(zm)
-	if err != nil {
-		log.Fatal("marshaling error: ", err)
-	}
-
-	err = c.WriteMessage(websocket.BinaryMessage, data)
-	if err != nil {
-		log.Fatal("write:", err)
 	}
 
 	select {}
