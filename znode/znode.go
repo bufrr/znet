@@ -114,7 +114,7 @@ func (z *Znode) vlc(w http.ResponseWriter, r *http.Request) {
 			_, message, err := c.ReadMessage()
 			if err != nil {
 				log.Println("ws read err:", err)
-				break
+				return
 			}
 
 			z.handleZMsg(message)
@@ -128,7 +128,7 @@ func (z *Znode) vlc(w http.ResponseWriter, r *http.Request) {
 				err = c.WriteMessage(websocket.BinaryMessage, msg.Data)
 				if err != nil {
 					log.Println("ws write err:", err)
-					break
+					return
 				}
 			}
 		}
