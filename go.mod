@@ -3,13 +3,6 @@ module znet
 go 1.22
 
 require (
-	github.com/gorilla/websocket v1.5.1
-	github.com/nknorg/nnet v0.0.0-20220621093239-b22b80b04216
-	golang.org/x/crypto v0.22.0
-	google.golang.org/protobuf v1.33.0
-)
-
-require (
 	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/hashicorp/yamux v0.1.1 // indirect
 	github.com/imdario/mergo v0.3.16 // indirect
@@ -26,4 +19,8 @@ require (
 	github.com/xtaci/smux v1.5.24 // indirect
 	golang.org/x/net v0.24.0 // indirect
 	golang.org/x/sys v0.19.0 // indirect
+	github.com/gorilla/websocket v1.5.1
+    github.com/nknorg/nnet v0.0.0-20220621093239-b22b80b04216
+    golang.org/x/crypto v0.22.0
+    google.golang.org/protobuf v1.33.0
 )

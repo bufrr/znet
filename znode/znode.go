@@ -1,7 +1,6 @@
 package znode
 
 import (
-	"fmt"
 	"github.com/gorilla/websocket"
 	"github.com/nknorg/nnet"
 	"google.golang.org/protobuf/proto"
@@ -10,6 +9,7 @@ import (
 	"net/http"
 	"strconv"
 	"time"
+	"znet/config"
 	"znet/dht"
 	pb "znet/protos"
 )
@@ -19,31 +19,25 @@ type Znode struct {
 	keyPair dht.KeyPair
 	vlcConn *net.UDPConn
 	buf     [102400]byte
-	config  Config
+	config  config.Config
 	wsToVlc chan *pb.ZMessage
 	VlcTows chan *pb.ZMessage
 }
 
-type Config struct {
-	Transport string
-	P2pPort   uint16
-	Keypair   dht.KeyPair
-	WsPort    uint16
-	UdpPort   uint16
-	VlcAddr   string
-}
-
-func NewZnode(c Config) (*Znode, error) {
+func NewZnode(c config.Config) (*Znode, error) {
 	nn, err := Create(c.Transport, c.P2pPort, c.Keypair.Id())
 	if err != nil {
 		return nil, err
 	}
 	udpAddr, err := net.ResolveUDPAddr("udp", c.VlcAddr)
 	if err != nil {
-		fmt.Println("Error: ", err)
+		log.Fatal("ResolveUDPAddr err:", err)
 	}
 
 	conn, err := net.DialUDP("udp", nil, udpAddr)
+	if err != nil {
+		log.Fatal("DialUDP err:", err)
+	}
 	b := make([]byte, 102400)
 	wsToVlc := make(chan *pb.ZMessage, 100)
 	vlcTows := make(chan *pb.ZMessage, 100)
@@ -117,15 +111,13 @@ func (z *Znode) vlc(w http.ResponseWriter, r *http.Request) {
 
 	go func() {
 		for {
-			mt, message, err := c.ReadMessage()
+			_, message, err := c.ReadMessage()
 			if err != nil {
 				log.Println("ws read err:", err)
 				break
 			}
 
 			z.handleZMsg(message)
-
-			log.Printf("recv: %s, type: %d", message, mt)
 		}
 	}()
 
@@ -133,10 +125,6 @@ func (z *Znode) vlc(w http.ResponseWriter, r *http.Request) {
 		for {
 			select {
 			case msg := <-z.VlcTows:
-				//data, err := proto.Marshal(msg)
-				//if err != nil {
-				//	log.Fatal(err)
-				//}
 				err = c.WriteMessage(websocket.BinaryMessage, msg.Data)
 				if err != nil {
 					log.Println("ws write err:", err)
@@ -152,5 +140,5 @@ func (z *Znode) vlc(w http.ResponseWriter, r *http.Request) {
 func (z *Znode) startWs() {
 	port := strconv.Itoa(int(z.config.WsPort))
 	http.HandleFunc("/vlc"+port, z.vlc)
-	http.ListenAndServe(":"+port, nil)
+	http.ListenAndServe("0.0.0.0:"+port, nil)
 }

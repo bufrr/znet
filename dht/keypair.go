@@ -14,19 +14,21 @@ func (k *KeyPair) Id() []byte {
 }
 
 func GenerateKeyPair(seed []byte) (KeyPair, error) {
+	var pubKey ed25519.PublicKey
+	var privKey ed25519.PrivateKey
+	var err error
+
 	if len(seed) > 0 {
-		priv := ed25519.NewKeyFromSeed(seed)
-		pub := priv.Public().(ed25519.PublicKey)
-		k := KeyPair{
-			PrivateKey: priv,
-			PublicKey:  pub,
-		}
-		return k, nil
+		privKey = ed25519.NewKeyFromSeed(seed)
+		pubKey = privKey.Public().(ed25519.PublicKey)
+	} else {
+		pubKey, privKey, err = ed25519.GenerateKey(nil)
 	}
-	pubKey, privKey, err := ed25519.GenerateKey(nil)
+
 	k := KeyPair{
 		PrivateKey: privKey,
 		PublicKey:  pubKey,
 	}
+
 	return k, err
 }
