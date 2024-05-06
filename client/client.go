@@ -10,7 +10,7 @@ import (
 )
 
 func main() {
-	c, _, err := websocket.DefaultDialer.Dial("ws://localhost:23333/vlc23333", nil) // id: 406b4c9bb2117df0505a58c6c44a99c8817b7639d9c877bdbea5a8e4e0412740
+	c, _, err := websocket.DefaultDialer.Dial("ws://localhost:23334/vlc23334", nil) // id: 406b4c9bb2117df0505a58c6c44a99c8817b7639d9c877bdbea5a8e4e0412740
 	if err != nil {
 		log.Fatal("dial:", err)
 	}
