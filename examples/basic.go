@@ -1,16 +1,16 @@
 package main
 
 import (
+	"github.com/bufrr/znet/config"
+	"github.com/bufrr/znet/dht"
+	pb "github.com/bufrr/znet/protos"
+	"github.com/bufrr/znet/znode"
 	"github.com/nknorg/nnet/node"
 	"github.com/nknorg/nnet/protobuf"
 	"golang.org/x/crypto/sha3"
 	"google.golang.org/protobuf/proto"
 	"log"
 	"time"
-	"znet/config"
-	"znet/dht"
-	pb "znet/protos"
-	"znet/znode"
 )
 
 func main() {

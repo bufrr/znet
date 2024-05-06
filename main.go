@@ -4,14 +4,14 @@ import (
 	"encoding/hex"
 	"flag"
 	"fmt"
+	"github.com/bufrr/znet/config"
+	"github.com/bufrr/znet/dht"
+	pb "github.com/bufrr/znet/protos"
+	"github.com/bufrr/znet/znode"
 	"github.com/nknorg/nnet/node"
 	"github.com/nknorg/nnet/protobuf"
 	"google.golang.org/protobuf/proto"
 	"log"
-	"znet/config"
-	"znet/dht"
-	pb "znet/protos"
-	"znet/znode"
 )
 
 func main() {

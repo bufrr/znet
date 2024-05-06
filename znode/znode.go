@@ -1,6 +1,9 @@
 package znode
 
 import (
+	"github.com/bufrr/znet/config"
+	"github.com/bufrr/znet/dht"
+	pb "github.com/bufrr/znet/protos"
 	"github.com/gorilla/websocket"
 	"github.com/nknorg/nnet"
 	"google.golang.org/protobuf/proto"
@@ -9,9 +12,6 @@ import (
 	"net/http"
 	"strconv"
 	"time"
-	"znet/config"
-	"znet/dht"
-	pb "znet/protos"
 )
 
 type Znode struct {

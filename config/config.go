@@ -1,6 +1,6 @@
 package config
 
-import "znet/dht"
+import "github.com/bufrr/znet/dht"
 
 const DEFAULT_P2P_PORT = 33333
 const DEFAULT_WS_PORT = 23333

@@ -10,12 +10,12 @@ import (
 )
 
 func main() {
-	c, _, err := websocket.DefaultDialer.Dial("ws://localhost:23334/vlc23334", nil) // id: 406b4c9bb2117df0505a58c6c44a99c8817b7639d9c877bdbea5a8e4e0412740
+	c, _, err := websocket.DefaultDialer.Dial("ws://192.168.1.110:23333/vlc23333", nil) // id: 406b4c9bb2117df0505a58c6c44a99c8817b7639d9c877bdbea5a8e4e0412740
 	if err != nil {
 		log.Fatal("dial:", err)
 	}
 	defer c.Close()
-	to, _ := hex.DecodeString("21665eac30d557de49bc9e22867a8c00eaeb515ebc4cb66aae27873d1aeb196b") // ws://127.0.0.1:23335/vlc23335
+	to, _ := hex.DecodeString("d33f8bf08cdc373093850bd4966213cfa19a87c2a2bd4738220fa011c606992f") // ws://127.0.0.1:23335/vlc23335
 
 	for {
 		// A connection is made to the server
