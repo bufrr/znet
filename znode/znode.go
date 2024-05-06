@@ -1,11 +1,11 @@
 package znode
 
 import (
+	"github.com/bufrr/net"
 	"github.com/bufrr/znet/config"
 	"github.com/bufrr/znet/dht"
 	pb "github.com/bufrr/znet/protos"
 	"github.com/gorilla/websocket"
-	"github.com/nknorg/nnet"
 	"google.golang.org/protobuf/proto"
 	"log"
 	"net"
@@ -100,7 +100,11 @@ func (z *Znode) handleZMsg(msg []byte) {
 }
 
 func (z *Znode) vlc(w http.ResponseWriter, r *http.Request) {
-	var upgrader = websocket.Upgrader{} // use default options
+	var upgrader = websocket.Upgrader{
+		CheckOrigin: func(r *http.Request) bool {
+			return true
+		},
+	} // use default options
 
 	c, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {

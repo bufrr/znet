@@ -1,12 +1,12 @@
 package main
 
 import (
+	"github.com/bufrr/net/node"
+	"github.com/bufrr/net/protobuf"
 	"github.com/bufrr/znet/config"
 	"github.com/bufrr/znet/dht"
 	pb "github.com/bufrr/znet/protos"
 	"github.com/bufrr/znet/znode"
-	"github.com/nknorg/nnet/node"
-	"github.com/nknorg/nnet/protobuf"
 	"golang.org/x/crypto/sha3"
 	"google.golang.org/protobuf/proto"
 	"log"

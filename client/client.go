@@ -2,11 +2,11 @@ package main
 
 import (
 	"encoding/hex"
+	pb "github.com/bufrr/znet/protos"
 	"github.com/gorilla/websocket"
 	"google.golang.org/protobuf/proto"
 	"log"
 	"time"
-	pb "znet/protos"
 )
 
 func main() {

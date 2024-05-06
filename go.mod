@@ -3,8 +3,8 @@ module github.com/bufrr/znet
 go 1.22
 
 require (
+	github.com/bufrr/net v0.0.0-20240506091912-9df693e4b790
 	github.com/gorilla/websocket v1.5.1
-	github.com/nknorg/nnet v0.0.0-20220621093239-b22b80b04216
 	golang.org/x/crypto v0.22.0
 	google.golang.org/protobuf v1.33.0
 )
