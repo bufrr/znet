@@ -15,7 +15,7 @@ func main() {
 		log.Fatal("dial:", err)
 	}
 	defer c.Close()
-	to, _ := hex.DecodeString("3724b4e85737f7a77b18737535cecd676db38e88514bf0387c2d8fa62905f8eb") // ws://127.0.0.1:23335/vlc23335
+	to, _ := hex.DecodeString("21665eac30d557de49bc9e22867a8c00eaeb515ebc4cb66aae27873d1aeb196b") // ws://127.0.0.1:23335/vlc23335
 
 	for {
 		// A connection is made to the server
@@ -40,13 +40,6 @@ func main() {
 			log.Fatal("write err:", err)
 		}
 
-		// Receipt and printout of the server's response
-		//_, message, err := c.ReadMessage()
-		//if err != nil {
-		//	log.Fatal("read err:", err)
-		//}
-		//
-		//log.Printf("Received: %s", message)
 		time.Sleep(1 * time.Second)
 	}
 }

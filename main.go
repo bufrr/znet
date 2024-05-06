@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/hex"
 	"flag"
 	"fmt"
 	"github.com/nknorg/nnet/node"
@@ -21,7 +22,9 @@ func main() {
 	remote := flag.String("remote", "", "remote node address")
 	flag.Parse()
 
-	keypair, err := dht.GenerateKeyPair([]byte(*id))
+	seed := [32]byte{}
+	copy(seed[:], *id)
+	keypair, err := dht.GenerateKeyPair(seed[:])
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -36,6 +39,10 @@ func main() {
 	}
 
 	znd, err := znode.NewZnode(conf)
+
+	zid := hex.EncodeToString(znd.Nnet.GetLocalNode().Id)
+	fmt.Println("id:", zid)
+
 	znd.Nnet.MustApplyMiddleware(node.BytesReceived{Func: func(msg, msgID, srcID []byte, remoteNode *node.RemoteNode) ([]byte, bool) {
 		zmsg := new(pb.ZMessage)
 		err := proto.Unmarshal(msg, zmsg)
