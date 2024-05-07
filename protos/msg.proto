@@ -47,4 +47,46 @@ enum ZType {
   Z_TYPE_EVENT = 1;
   Z_TYPE_CLOCK = 2;
   Z_TYPE_GATEWAY = 3;
+  Z_TYPE_ZCHAT = 4;
+}
+
+message ZChat {
+  string message_data = 1;
+  ClockInfo clock = 2;
+}
+
+message MergeLog {
+  bytes from_id = 1;
+  bytes to_id = 2;
+  uint64 start_count = 3;
+  uint64 end_count = 4;
+  Clock s_clock = 5;
+  Clock e_clock = 6;
+  uint64 merge_at = 7;
+}
+
+message Clock {
+  map<string, uint64> values = 1;
+}
+
+message ClockInfo {
+  Clock clock = 1;
+  bytes id = 2;       //id 为node id
+  bytes message_id = 3;
+  uint64 count = 4;
+  uint64 create_at = 5;
+}
+
+// type = TYPE_CLOCK_NODE
+message ClockNode {
+  Clock clock = 1;
+  bytes id = 2;
+  bytes message_id = 3;
+  uint64 count = 4;
+  uint64 create_at = 5;
+  bytes raw_message = 6;
+}
+
+message NodeInfo {
+  repeated string node_ids = 1;
 }
