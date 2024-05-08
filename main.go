@@ -50,11 +50,6 @@ func main() {
 			log.Fatal(err)
 		}
 
-		_, err = znd.ReqVlc(msg)
-		if err != nil {
-			log.Fatal(err)
-		}
-
 		switch zmsg.Identity {
 		case pb.ZIdentity_U_TYPE_SER:
 			_, err = znd.Nnet.SendBytesBroadcastAsync(msg, protobuf.BROADCAST_TREE)

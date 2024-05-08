@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"github.com/bufrr/net/node"
 	"github.com/bufrr/net/protobuf"
 	"github.com/bufrr/znet/config"
@@ -40,14 +41,11 @@ func main() {
 			log.Fatal(err)
 		}
 
+		fmt.Printf("port: %d, wsport: %d, id: %x\n", p2p, ws, znd.Nnet.GetLocalNode().Id)
+
 		znd.Nnet.MustApplyMiddleware(node.BytesReceived{Func: func(msg, msgID, srcID []byte, remoteNode *node.RemoteNode) ([]byte, bool) {
 			zmsg := new(pb.ZMessage)
 			err := proto.Unmarshal(msg, zmsg)
-			if err != nil {
-				log.Fatal(err)
-			}
-
-			_, err = znd.ReqVlc(msg)
 			if err != nil {
 				log.Fatal(err)
 			}
