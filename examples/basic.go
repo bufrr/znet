@@ -32,7 +32,7 @@ func main() {
 			P2pPort:   uint16(p2p),
 			Keypair:   keypair,
 			WsPort:    uint16(ws),
-			UdpPort:   8080,
+			UdpPort:   config.DefaultUdpPort,
 			VlcAddr:   "127.0.0.1:8080",
 		}
 

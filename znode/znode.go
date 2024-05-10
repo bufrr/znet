@@ -104,7 +104,7 @@ func (z *Znode) vlc(w http.ResponseWriter, r *http.Request) {
 		CheckOrigin: func(r *http.Request) bool {
 			return true
 		},
-	} // use default options
+	}
 
 	c, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {

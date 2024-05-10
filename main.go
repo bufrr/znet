@@ -15,9 +15,9 @@ import (
 )
 
 func main() {
-	p2pPort := flag.Uint("p2p", config.DEFAULT_P2P_PORT, "p2p port")
-	wsPort := flag.Uint("ws", config.DEFAULT_WS_PORT, "websocket port")
-	vlcAddr := flag.String("vlc", config.DEFAULT_VLC_ADDR, "vlc address")
+	p2pPort := flag.Uint("p2p", config.DefaultP2pPort, "p2p port")
+	wsPort := flag.Uint("ws", config.DefaultWsPort, "websocket port")
+	vlcAddr := flag.String("vlc", config.DefaultVlcAddr, "vlc address")
 	id := flag.String("id", "", "node id")
 	remote := flag.String("remote", "", "remote node address")
 	flag.Parse()

@@ -2,10 +2,10 @@ package config
 
 import "github.com/bufrr/znet/dht"
 
-const DEFAULT_P2P_PORT = 33333
-const DEFAULT_WS_PORT = 23333
-const DEFAULT_UDP_PORT = 8080
-const DEFAULT_VLC_ADDR = "127.0.0.1:8080"
+const DefaultP2pPort = 33333
+const DefaultWsPort = 23333
+const DefaultUdpPort = 8080
+const DefaultVlcAddr = "127.0.0.1:8080"
 
 type Config struct {
 	Transport string
