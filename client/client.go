@@ -15,16 +15,21 @@ func main() {
 		log.Fatal("dial:", err)
 	}
 	defer c.Close()
-	to, _ := hex.DecodeString("f78e5a39e3d433986c4b8026d0baeb62b7eb845c29bb83a04b79d645ef7efbba") // ws://127.0.0.1:23335/vlc23335
+	to, _ := hex.DecodeString("3724b4e85737f7a77b18737535cecd676db38e88514bf0387c2d8fa62905f8eb") // ws://127.0.0.1:23335/vlc23335
 
 	for {
-		cc := pb.Clock{Values: make(map[string]uint64)}
+		id, _ := util.RandBytes(32)
+		id2, _ := util.RandBytes(32)
+		v := make(map[string]uint64)
+		v[hex.EncodeToString(id)] = 1
+		cc := pb.Clock{Values: v}
+
 		ci := pb.ClockInfo{
 			Clock:     &cc,
-			Id:        []byte("1"),
-			MessageId: []byte("222"),
-			Count:     1,
-			CreateAt:  123,
+			Id:        id,
+			MessageId: id2,
+			Count:     2,
+			CreateAt:  1243,
 		}
 
 		r, _ := util.RandBytes(8)
@@ -40,15 +45,19 @@ func main() {
 		// A connection is made to the server
 		// We prepare our ZMessage
 		zMsg := &pb.ZMessage{
-			Action:   pb.ZAction_Z_TYPE_WRITE,
-			Data:     d,
-			Identity: pb.ZIdentity_U_TYPE_CLI,
-			To:       to,
-			Type:     pb.ZType_Z_TYPE_ZCHAT,
+			Data: d,
+			To:   to,
+			Type: pb.ZType_Z_TYPE_ZCHAT,
+		}
+
+		innerMsg := &pb.Innermsg{
+			Identity: pb.Identity_IDENTITY_CLIENT,
+			Action:   pb.Action_ACTION_WRITE,
+			Message:  zMsg,
 		}
 
 		// The ZMessage has to be serialized to bytes to be sent over the network
-		data, err := proto.Marshal(zMsg)
+		data, err := proto.Marshal(innerMsg)
 		if err != nil {
 			log.Fatal("marshaling error: ", err)
 		}
@@ -60,6 +69,6 @@ func main() {
 		}
 
 		//time.Sleep(1 * time.Second)
-		break
+		select {}
 	}
 }

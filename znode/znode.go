@@ -1,7 +1,10 @@
 package znode
 
 import (
+	"fmt"
 	"github.com/bufrr/net"
+	"github.com/bufrr/net/node"
+	"github.com/bufrr/net/protobuf"
 	"github.com/bufrr/znet/config"
 	"github.com/bufrr/znet/dht"
 	pb "github.com/bufrr/znet/protos"
@@ -18,10 +21,10 @@ type Znode struct {
 	Nnet    *nnet.NNet
 	keyPair dht.KeyPair
 	vlcConn *net.UDPConn
-	buf     [102400]byte
+	buf     [65536]byte
 	config  config.Config
-	wsToVlc chan *pb.ZMessage
-	VlcTows chan *pb.ZMessage
+	wsToVlc chan *pb.Innermsg
+	VlcTows chan *pb.Innermsg
 }
 
 func NewZnode(c config.Config) (*Znode, error) {
@@ -38,15 +41,15 @@ func NewZnode(c config.Config) (*Znode, error) {
 	if err != nil {
 		log.Fatal("DialUDP err:", err)
 	}
-	b := make([]byte, 102400)
-	wsToVlc := make(chan *pb.ZMessage, 100)
-	vlcTows := make(chan *pb.ZMessage, 100)
+	b := make([]byte, 65536)
+	wsToVlc := make(chan *pb.Innermsg, 100)
+	vlcTows := make(chan *pb.Innermsg, 100)
 
 	return &Znode{
 		Nnet:    nn,
 		keyPair: c.Keypair,
 		vlcConn: conn,
-		buf:     [102400]byte(b),
+		buf:     [65536]byte(b),
 		config:  c,
 		wsToVlc: wsToVlc,
 		VlcTows: vlcTows,
@@ -87,13 +90,13 @@ func (z *Znode) ReqVlc(b []byte) ([]byte, error) {
 }
 
 func (z *Znode) handleZMsg(msg []byte) {
-	zMsg := new(pb.ZMessage)
-	err := proto.Unmarshal(msg, zMsg)
+	innerMsg := new(pb.Innermsg)
+	err := proto.Unmarshal(msg, innerMsg)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	_, _, err = z.Nnet.SendBytesRelaySync(msg, zMsg.To)
+	_, _, err = z.Nnet.SendBytesRelaySync(msg, innerMsg.Message.To)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -129,7 +132,7 @@ func (z *Znode) vlc(w http.ResponseWriter, r *http.Request) {
 		for {
 			select {
 			case msg := <-z.VlcTows:
-				err = c.WriteMessage(websocket.BinaryMessage, msg.Data)
+				err = c.WriteMessage(websocket.BinaryMessage, msg.Message.Data)
 				if err != nil {
 					log.Println("ws write err:", err)
 					return
@@ -145,4 +148,46 @@ func (z *Znode) startWs() {
 	port := strconv.Itoa(int(z.config.WsPort))
 	http.HandleFunc("/vlc"+port, z.vlc)
 	http.ListenAndServe("0.0.0.0:"+port, nil)
+}
+
+func ApplyBytesReceived(znd *Znode) {
+	znd.Nnet.MustApplyMiddleware(node.BytesReceived{Func: func(msg, msgID, srcID []byte, remoteNode *node.RemoteNode) ([]byte, bool) {
+		innerMsg := new(pb.Innermsg)
+		err := proto.Unmarshal(msg, innerMsg)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		switch innerMsg.Identity {
+		case pb.Identity_IDENTITY_SERVER:
+			_, err = znd.Nnet.SendBytesBroadcastAsync(msg, protobuf.BROADCAST_TREE)
+			if err != nil {
+				log.Fatal(err)
+			}
+		case pb.Identity_IDENTITY_CLIENT:
+			znd.VlcTows <- innerMsg // send msg to websocket
+			fmt.Printf("id: %x\n", znd.Nnet.GetLocalNode().Id)
+
+			resp, err := znd.ReqVlc(msg)
+			if err != nil {
+				log.Fatal(err)
+			}
+			err = proto.Unmarshal(resp, innerMsg)
+
+			innerMsg.Identity = pb.Identity_IDENTITY_SERVER
+			msg, err = proto.Marshal(innerMsg)
+			if err != nil {
+				log.Fatal(err)
+			}
+
+			_, err = znd.Nnet.SendBytesRelayReply(msgID, resp, srcID)
+			if err != nil {
+				log.Fatal(err)
+			}
+		}
+
+		log.Printf("Receive message from %x by %x", srcID, remoteNode.Id)
+
+		return msg, true
+	}})
 }

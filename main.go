@@ -4,13 +4,9 @@ import (
 	"encoding/hex"
 	"flag"
 	"fmt"
-	"github.com/bufrr/net/node"
-	"github.com/bufrr/net/protobuf"
 	"github.com/bufrr/znet/config"
 	"github.com/bufrr/znet/dht"
-	pb "github.com/bufrr/znet/protos"
 	"github.com/bufrr/znet/znode"
-	"google.golang.org/protobuf/proto"
 	"log"
 )
 
@@ -39,48 +35,14 @@ func main() {
 	}
 
 	znd, err := znode.NewZnode(conf)
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	zid := hex.EncodeToString(znd.Nnet.GetLocalNode().Id)
 	fmt.Println("id:", zid)
 
-	znd.Nnet.MustApplyMiddleware(node.BytesReceived{Func: func(msg, msgID, srcID []byte, remoteNode *node.RemoteNode) ([]byte, bool) {
-		zmsg := new(pb.ZMessage)
-		err := proto.Unmarshal(msg, zmsg)
-		if err != nil {
-			log.Fatal(err)
-		}
-
-		switch zmsg.Identity {
-		case pb.ZIdentity_U_TYPE_SER:
-			_, err = znd.Nnet.SendBytesBroadcastAsync(msg, protobuf.BROADCAST_TREE)
-			if err != nil {
-				log.Fatal(err)
-			}
-		case pb.ZIdentity_U_TYPE_CLI:
-			znd.VlcTows <- zmsg // send msg to websocket
-
-			resp, err := znd.ReqVlc(msg)
-			if err != nil {
-				log.Fatal(err)
-			}
-			err = proto.Unmarshal(resp, zmsg)
-
-			zmsg.Identity = pb.ZIdentity_U_TYPE_SER
-			msg, err = proto.Marshal(zmsg)
-			if err != nil {
-				log.Fatal(err)
-			}
-
-			_, err = znd.Nnet.SendBytesRelayReply(msgID, resp, srcID)
-			if err != nil {
-				log.Fatal(err)
-			}
-		}
-
-		log.Printf("Receive message \"%s\" from %x by %x", string(zmsg.Data), srcID, remoteNode.Id)
-
-		return msg, true
-	}})
+	znode.ApplyBytesReceived(znd)
 
 	isCreate := len(*remote) == 0
 	err = znd.Start(isCreate)
