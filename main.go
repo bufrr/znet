@@ -42,7 +42,7 @@ func main() {
 	zid := hex.EncodeToString(znd.Nnet.GetLocalNode().Id)
 	fmt.Println("id:", zid)
 
-	znode.ApplyBytesReceived(znd)
+	znd.ApplyBytesReceived()
 
 	isCreate := len(*remote) == 0
 	err = znd.Start(isCreate)

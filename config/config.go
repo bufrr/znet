@@ -12,6 +12,9 @@ type Config struct {
 	P2pPort   uint16
 	Keypair   dht.KeyPair
 	WsPort    uint16
+	RpcPort   uint16
 	UdpPort   uint16
 	VlcAddr   string
+	Domain    string
+	SeedList  []string
 }

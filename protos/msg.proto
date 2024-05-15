@@ -138,3 +138,10 @@ message ClockNode {
 message NodeInfo {
   repeated string node_ids = 1;
 }
+
+message NodeData {
+  bytes public_key = 1;
+  uint32 websocket_port = 2;
+  uint32 json_rpc_port = 3;
+  string domain = 4;
+}
