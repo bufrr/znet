@@ -5,6 +5,8 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	pb "github.com/bufrr/znet/protos"
+	"google.golang.org/protobuf/proto"
 	"io"
 	"net"
 	"net/http"
@@ -37,9 +39,10 @@ func (z *Znode) startRpc() {
 
 func (rs *RpcServer) Start() error {
 	rs.RegisterHandler("getWsAddr", getWsAddr)
-	rs.RegisterHandler("getnodestates", getnodestates)
+	rs.RegisterHandler("getNodeStates", getNodeStates)
 	rs.RegisterHandler("getNeighbors", getNeighbors)
 	rs.RegisterHandler("getExtIp", getExtIp)
+	rs.RegisterHandler("queryByKeyId", queryByKeyId)
 
 	port := strconv.Itoa(int(rs.z.config.RpcPort))
 	http.HandleFunc("/rpc"+port, rs.rpcHandler)
@@ -121,8 +124,15 @@ func getWsAddr(rs RpcServer, params map[string]interface{}, ctx context.Context)
 	return nil
 }
 
-func getnodestates(rs RpcServer, params map[string]interface{}, ctx context.Context) map[string]interface{} {
-	return nil
+func getNodeStates(rs RpcServer, params map[string]interface{}, ctx context.Context) map[string]interface{} {
+	res := make(map[string]interface{})
+	res["id"] = hex.EncodeToString(rs.z.Nnet.GetLocalNode().Id)
+	res["addr"] = rs.z.config.Domain
+	res["p2pPort"] = rs.z.config.P2pPort
+	res["rpcPort"] = rs.z.config.RpcPort
+	res["wsPort"] = rs.z.config.WsPort
+
+	return res
 }
 
 func getNeighbors(rs RpcServer, params map[string]interface{}, ctx context.Context) map[string]interface{} {
@@ -149,5 +159,44 @@ func getExtIp(rs RpcServer, params map[string]interface{}, ctx context.Context) 
 	}
 	return map[string]interface{}{
 		"extIp": host,
+	}
+}
+
+func queryByKeyId(rs RpcServer, params map[string]interface{}, ctx context.Context) map[string]interface{} {
+	i, ok := params["gatewayType"].(float64)
+	if !ok {
+		return map[string]interface{}{
+			"error": "gatewayType is required",
+		}
+	}
+	q, _ := proto.Marshal(&pb.QueryByTableKeyID{LastPos: 0})
+
+	gateway := pb.ZGateway{
+		Type:   pb.GatewayType(i),
+		Method: pb.QueryMethod_QUERY_BY_TABLE_KEYID,
+		Data:   q,
+	}
+
+	gw, _ := proto.Marshal(&gateway)
+	p2pMsg := pb.ZMessage{
+		Type: pb.ZType_Z_TYPE_GATEWAY,
+		Data: gw,
+	}
+
+	innerMsg := pb.Innermsg{
+		Identity: pb.Identity_IDENTITY_CLIENT,
+		Action:   pb.Action_ACTION_READ,
+		Message:  &p2pMsg,
+	}
+
+	data, _ := proto.Marshal(&innerMsg)
+
+	resp, err := rs.z.ReqVlc(data)
+	if err != nil {
+		return nil
+	}
+
+	return map[string]interface{}{
+		"result": hex.EncodeToString(resp),
 	}
 }
