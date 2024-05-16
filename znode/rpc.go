@@ -163,16 +163,21 @@ func getExtIp(rs RpcServer, params map[string]interface{}, ctx context.Context) 
 }
 
 func queryByKeyId(rs RpcServer, params map[string]interface{}, ctx context.Context) map[string]interface{} {
-	i, ok := params["gatewayType"].(float64)
+	gwt, ok := params["gatewayType"].(float64)
 	if !ok {
 		return map[string]interface{}{
 			"error": "gatewayType is required",
 		}
 	}
-	q, _ := proto.Marshal(&pb.QueryByTableKeyID{LastPos: 0})
+
+	index, ok := params["index"].(float64)
+	if !ok {
+		index = 0
+	}
+	q, _ := proto.Marshal(&pb.QueryByTableKeyID{LastPos: uint64(index)})
 
 	gateway := pb.ZGateway{
-		Type:   pb.GatewayType(i),
+		Type:   pb.GatewayType(gwt),
 		Method: pb.QueryMethod_QUERY_BY_TABLE_KEYID,
 		Data:   q,
 	}
