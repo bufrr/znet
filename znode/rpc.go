@@ -121,7 +121,24 @@ func getWsAddr(rs RpcServer, params map[string]interface{}, ctx context.Context)
 			"error": "address is required",
 		}
 	}
-	return nil
+
+	address, ok := params["address"].(string)
+	if !ok {
+		return map[string]interface{}{
+			"error": "address is required",
+		}
+	}
+	b, err := hex.DecodeString(address)
+	if err != nil {
+		return map[string]interface{}{
+			"error": err.Error(),
+		}
+	}
+
+	addr, _, err := rs.z.FindWsAddr(b)
+	return map[string]interface{}{
+		"wsAddr": addr,
+	}
 }
 
 func getNodeStates(rs RpcServer, params map[string]interface{}, ctx context.Context) map[string]interface{} {
@@ -201,7 +218,13 @@ func queryByKeyId(rs RpcServer, params map[string]interface{}, ctx context.Conte
 		return nil
 	}
 
+	inner := new(pb.Innermsg)
+	err = proto.Unmarshal(resp, inner)
+	if err != nil {
+		return nil
+	}
+
 	return map[string]interface{}{
-		"result": hex.EncodeToString(resp),
+		"result": hex.EncodeToString(inner.Message.Data),
 	}
 }

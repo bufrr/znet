@@ -1,7 +1,7 @@
 package znode
 
 import (
-	"encoding/json"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"github.com/bufrr/net"
@@ -11,14 +11,10 @@ import (
 	"github.com/bufrr/znet/config"
 	"github.com/bufrr/znet/dht"
 	pb "github.com/bufrr/znet/protos"
-	"github.com/gorilla/websocket"
 	"google.golang.org/protobuf/proto"
-	"io"
 	"log"
 	"net"
-	"net/http"
 	"strconv"
-	"strings"
 	"sync"
 	"time"
 )
@@ -51,8 +47,7 @@ type Znode struct {
 	vlcConn   *net.UDPConn
 	buf       [65536]byte
 	config    config.Config
-	wsToVlc   chan *pb.Innermsg
-	VlcTows   chan *pb.Innermsg
+	msgBuffer map[string]chan []byte
 }
 
 func NewZnode(c config.Config) (*Znode, error) {
@@ -70,8 +65,6 @@ func NewZnode(c config.Config) (*Znode, error) {
 		log.Fatal("DialUDP err:", err)
 	}
 	b := make([]byte, 65536)
-	wsToVlc := make(chan *pb.Innermsg, 100)
-	vlcTows := make(chan *pb.Innermsg, 100)
 
 	nd := &pb.NodeData{
 		WebsocketPort: uint32(c.WsPort),
@@ -91,15 +84,15 @@ func NewZnode(c config.Config) (*Znode, error) {
 		vlcConn:   conn,
 		buf:       [65536]byte(b),
 		config:    c,
-		wsToVlc:   wsToVlc,
-		VlcTows:   vlcTows,
 		Neighbors: neighbors,
 	}, nil
 }
 
 func (z *Znode) Start(isCreate bool) error {
-	go z.startWs()
-	go z.startRpc()
+	wsServer := NewWsServer(z)
+	go wsServer.Start()
+	rpcServer := NewRpcServer(z)
+	go rpcServer.Start()
 	return z.Nnet.Start(isCreate)
 }
 
@@ -144,54 +137,6 @@ func (z *Znode) handleZMsg(msg []byte) {
 	}
 }
 
-func (z *Znode) vlc(w http.ResponseWriter, r *http.Request) {
-	var upgrader = websocket.Upgrader{
-		CheckOrigin: func(r *http.Request) bool {
-			return true
-		},
-	}
-
-	c, err := upgrader.Upgrade(w, r, nil)
-	if err != nil {
-		log.Print("upgrade:", err)
-		return
-	}
-	defer c.Close()
-
-	go func() {
-		for {
-			_, message, err := c.ReadMessage()
-			if err != nil {
-				log.Println("ws read err:", err)
-				return
-			}
-
-			z.handleZMsg(message)
-		}
-	}()
-
-	go func() {
-		for {
-			select {
-			case msg := <-z.VlcTows:
-				err = c.WriteMessage(websocket.BinaryMessage, msg.Message.Data)
-				if err != nil {
-					log.Println("ws write err:", err)
-					return
-				}
-			}
-		}
-	}()
-
-	select {}
-}
-
-func (z *Znode) startWs() {
-	port := strconv.Itoa(int(z.config.WsPort))
-	http.HandleFunc("/vlc"+port, z.vlc)
-	http.ListenAndServe("0.0.0.0:"+port, nil)
-}
-
 func (z *Znode) FindWsAddr(key []byte) (string, []byte, error) {
 	c, ok := z.Nnet.Network.(*chord.Chord)
 	if !ok {
@@ -207,7 +152,12 @@ func (z *Znode) FindWsAddr(key []byte) (string, []byte, error) {
 
 	pred := preds[0]
 
-	return pred.Addr, pred.Id, nil
+	nd := new(pb.NodeData)
+	err = proto.Unmarshal(pred.Data, nd)
+
+	addr := "ws://" + nd.Domain + ":" + strconv.Itoa(int(nd.WebsocketPort))
+
+	return addr, nd.PublicKey, nil
 }
 
 func (z *Znode) ApplyBytesReceived() {
@@ -225,8 +175,15 @@ func (z *Znode) ApplyBytesReceived() {
 				log.Fatal(err)
 			}
 		case pb.Identity_IDENTITY_CLIENT:
-			z.VlcTows <- innerMsg // send msg to websocket
-			fmt.Printf("id: %x\n", z.Nnet.GetLocalNode().Id)
+			fmt.Printf("###Msg received: %x\n", z.Nnet.GetLocalNode().Id)
+			to := hex.EncodeToString(innerMsg.Message.To)
+			if ch, ok := z.msgBuffer[to]; ok {
+				ch <- innerMsg.Message.Data
+			} else {
+				ch := make(chan []byte, 100)
+				ch <- innerMsg.Message.Data
+				z.msgBuffer[to] = ch
+			}
 
 			resp, err := z.ReqVlc(msg)
 			if err != nil {
@@ -272,44 +229,4 @@ func (z *Znode) ApplyNeighborRemoved() {
 		delete(z.Neighbors, string(remoteNode.Id))
 		return true
 	}})
-}
-
-func GetExtIp(remote string) (string, error) {
-	resp, err := Call(remote, "getExtIp", 0, map[string]interface{}{})
-	if err != nil {
-		return "", err
-	}
-
-	var ret map[string]interface{}
-	if err := json.Unmarshal(resp, &ret); err != nil {
-		return "", err
-	}
-
-	return ret["extIp"].(string), nil
-}
-
-func Call(address string, method string, id uint, params map[string]interface{}) ([]byte, error) {
-	data, err := json.Marshal(map[string]interface{}{
-		"method": method,
-		"id":     id,
-		"params": params,
-	})
-	if err != nil {
-		return nil, err
-	}
-
-	client := &http.Client{
-		Timeout: 5 * time.Second,
-	}
-	resp, err := client.Post(address, "application/json", strings.NewReader(string(data)))
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return nil, err
-	}
-	return body, nil
 }

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/bufrr/znet/config"
 	"github.com/bufrr/znet/dht"
+	"github.com/bufrr/znet/utils"
 	"github.com/bufrr/znet/znode"
 	"golang.org/x/crypto/sha3"
 	"log"
@@ -42,7 +43,7 @@ func main() {
 			SeedList:  sl,
 		}
 
-		ip, err := znode.GetExtIp(c.SeedList[0])
+		ip, err := utils.GetExtIp(c.SeedList[0])
 		if err != nil {
 			log.Fatal("get ext ip err:", err)
 		}
@@ -76,19 +77,6 @@ func main() {
 			return
 		}
 	}
-
-	//go func() {
-	//	for {
-	//		time.Sleep(3 * time.Second)
-	//		for _, n := range znets[0].Neighbors {
-	//			fmt.Printf("rpc port: %d, addr: %s\n", n.RpcPort, n.RpcDomain)
-	//		}
-	//	}
-	//}()
-
-	//time.Sleep(1 * time.Second)
-	//r, _ := util.RandBytes(32)
-	//znets[0].FindWsAddr(r)
 
 	select {}
 }
