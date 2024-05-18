@@ -118,14 +118,14 @@ func (rs *RpcServer) RegisterHandler(method string, handler Handler) {
 func getWsAddr(rs RpcServer, params map[string]interface{}, ctx context.Context) map[string]interface{} {
 	if len(params) == 0 {
 		return map[string]interface{}{
-			"error": "address is required",
+			"error": "address1 is required",
 		}
 	}
 
 	address, ok := params["address"].(string)
 	if !ok {
 		return map[string]interface{}{
-			"error": "address is required",
+			"error": "address2 is required",
 		}
 	}
 	b, err := hex.DecodeString(address)

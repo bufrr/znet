@@ -2,6 +2,7 @@ package znode
 
 import (
 	"encoding/hex"
+	"fmt"
 	"github.com/gorilla/websocket"
 	"log"
 	"net"
@@ -23,6 +24,7 @@ func NewWsServer(z *Znode) *WsServer {
 	return &WsServer{
 		z:        z,
 		handlers: make(map[string]Handler),
+		clients:  make(map[string]*websocket.Conn),
 	}
 }
 
@@ -47,7 +49,7 @@ func (ws *WsServer) vlcHandler(w http.ResponseWriter, r *http.Request) {
 	defer conn.Close()
 	_, message, err := conn.ReadMessage()
 	if err != nil {
-		log.Println("ws read id err:", err)
+		log.Println("ws read id err1: ", err)
 	}
 	id := hex.EncodeToString(message)
 	ws.clients[id] = conn
@@ -57,7 +59,7 @@ func (ws *WsServer) vlcHandler(w http.ResponseWriter, r *http.Request) {
 		for {
 			_, message, err := conn.ReadMessage()
 			if err != nil {
-				log.Println("ws read err:", err)
+				log.Println("ws read err2:", err)
 				return
 			}
 
@@ -69,6 +71,7 @@ func (ws *WsServer) vlcHandler(w http.ResponseWriter, r *http.Request) {
 		for {
 			select {
 			case msg := <-ws.z.msgBuffer[id]:
+				fmt.Printf("msgg: %x\n", msg)
 				err = conn.WriteMessage(websocket.BinaryMessage, msg)
 				if err != nil {
 					log.Println("ws write err:", err)
@@ -77,4 +80,6 @@ func (ws *WsServer) vlcHandler(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 	}()
+
+	select {}
 }

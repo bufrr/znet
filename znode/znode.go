@@ -3,11 +3,9 @@ package znode
 import (
 	"encoding/hex"
 	"errors"
-	"fmt"
 	"github.com/bufrr/net"
 	"github.com/bufrr/net/node"
 	"github.com/bufrr/net/overlay/chord"
-	"github.com/bufrr/net/protobuf"
 	"github.com/bufrr/znet/config"
 	"github.com/bufrr/znet/dht"
 	pb "github.com/bufrr/znet/protos"
@@ -85,6 +83,7 @@ func NewZnode(c config.Config) (*Znode, error) {
 		buf:       [65536]byte(b),
 		config:    c,
 		Neighbors: neighbors,
+		msgBuffer: make(map[string]chan []byte),
 	}, nil
 }
 
@@ -125,13 +124,13 @@ func (z *Znode) ReqVlc(b []byte) ([]byte, error) {
 }
 
 func (z *Znode) handleZMsg(msg []byte) {
-	innerMsg := new(pb.Innermsg)
-	err := proto.Unmarshal(msg, innerMsg)
+	zmsg := new(pb.ZMessage)
+	err := proto.Unmarshal(msg, zmsg)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	_, _, err = z.Nnet.SendBytesRelaySync(msg, innerMsg.Message.To)
+	_, _, err = z.Nnet.SendBytesRelaySync(msg, zmsg.To)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -162,48 +161,67 @@ func (z *Znode) FindWsAddr(key []byte) (string, []byte, error) {
 
 func (z *Znode) ApplyBytesReceived() {
 	z.Nnet.MustApplyMiddleware(node.BytesReceived{Func: func(msg, msgID, srcID []byte, remoteNode *node.RemoteNode) ([]byte, bool) {
-		innerMsg := new(pb.Innermsg)
-		err := proto.Unmarshal(msg, innerMsg)
+		//innerMsg := new(pb.Innermsg)
+		//err := proto.Unmarshal(msg, innerMsg)
+		//if err != nil {
+		//	log.Fatal(err)
+		//}
+		//
+		//switch innerMsg.Identity {
+		//case pb.Identity_IDENTITY_SERVER:
+		//	_, err = z.Nnet.SendBytesBroadcastAsync(msg, protobuf.BROADCAST_TREE)
+		//	if err != nil {
+		//		log.Fatal(err)
+		//	}
+		//case pb.Identity_IDENTITY_CLIENT:
+		//	fmt.Printf("###Msg received: %x\n", z.Nnet.GetLocalNode().Id)
+		//	to := hex.EncodeToString(innerMsg.Message.To)
+		//	if ch, ok := z.msgBuffer[to]; ok {
+		//		ch <- innerMsg.Message.Data
+		//	} else {
+		//		ch := make(chan []byte, 100)
+		//		ch <- innerMsg.Message.Data
+		//		z.msgBuffer[to] = ch
+		//	}
+		//
+		//	resp, err := z.ReqVlc(msg)
+		//	if err != nil {
+		//		log.Fatal(err)
+		//	}
+		//	err = proto.Unmarshal(resp, innerMsg)
+		//
+		//	innerMsg.Identity = pb.Identity_IDENTITY_SERVER
+		//	msg, err = proto.Marshal(innerMsg)
+		//	if err != nil {
+		//		log.Fatal(err)
+		//	}
+		//
+		//	_, err = z.Nnet.SendBytesRelayReply(msgID, resp, srcID)
+		//	if err != nil {
+		//		log.Fatal(err)
+		//	}
+		//}
+
+		zmsg := new(pb.ZMessage)
+		err := proto.Unmarshal(msg, zmsg)
 		if err != nil {
 			log.Fatal(err)
 		}
 
-		switch innerMsg.Identity {
-		case pb.Identity_IDENTITY_SERVER:
-			_, err = z.Nnet.SendBytesBroadcastAsync(msg, protobuf.BROADCAST_TREE)
-			if err != nil {
-				log.Fatal(err)
-			}
-		case pb.Identity_IDENTITY_CLIENT:
-			fmt.Printf("###Msg received: %x\n", z.Nnet.GetLocalNode().Id)
-			to := hex.EncodeToString(innerMsg.Message.To)
-			if ch, ok := z.msgBuffer[to]; ok {
-				ch <- innerMsg.Message.Data
-			} else {
-				ch := make(chan []byte, 100)
-				ch <- innerMsg.Message.Data
-				z.msgBuffer[to] = ch
-			}
+		//_, err = z.Nnet.SendBytesRelayReply(msgID, []byte{}, srcID)
+		//if err != nil {
+		//	log.Fatal(err)
+		//}
 
-			resp, err := z.ReqVlc(msg)
-			if err != nil {
-				log.Fatal(err)
-			}
-			err = proto.Unmarshal(resp, innerMsg)
-
-			innerMsg.Identity = pb.Identity_IDENTITY_SERVER
-			msg, err = proto.Marshal(innerMsg)
-			if err != nil {
-				log.Fatal(err)
-			}
-
-			_, err = z.Nnet.SendBytesRelayReply(msgID, resp, srcID)
-			if err != nil {
-				log.Fatal(err)
-			}
+		id := hex.EncodeToString(zmsg.To)
+		if _, ok := z.msgBuffer[id]; !ok {
+			z.msgBuffer[id] = make(chan []byte, 100)
 		}
+		z.msgBuffer[id] <- zmsg.Data
 
 		log.Printf("Receive message from %x by %x", srcID, remoteNode.Id)
+		log.Printf("ws port: %d", z.config.WsPort)
+		log.Printf("data: %x", zmsg.Data)
 
 		return msg, true
 	}})

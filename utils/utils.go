@@ -23,11 +23,8 @@ func GetExtIp(remote string) (string, error) {
 }
 
 func Call(address string, method string, id uint, params map[string]interface{}) ([]byte, error) {
-	data, err := json.Marshal(map[string]interface{}{
-		"method": method,
-		"id":     id,
-		"params": params,
-	})
+	params["method"] = method
+	data, err := json.Marshal(params)
 	if err != nil {
 		return nil, err
 	}
