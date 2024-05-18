@@ -17,9 +17,6 @@ func main() {
 		fmt.Println("err: ", err)
 	}
 
-	go client1.ReadMsg()
-	go client2.ReadMsg()
-
 	//addr1 := client1.Address()
 	addr2 := client2.Address()
 

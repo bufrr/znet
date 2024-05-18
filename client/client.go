@@ -83,23 +83,20 @@ func (c *Client) connect(addr string) error {
 	if err != nil {
 		return err
 	}
+
+	go c.readMsg()
 	fmt.Println("connected to ", addr)
 
 	return nil
 }
 
-func (c *Client) ReadMsg() {
+func (c *Client) readMsg() {
 	for {
 		_, msg, err := c.conn.ReadMessage()
 		if err != nil {
 			fmt.Println("read conn err: ", err)
 			return
 		}
-		//zmsg := new(pb.ZMessage)
-		//err = proto.Unmarshal(msg, zmsg)
-		//if err != nil {
-		//	log.Printf("unmarshal err: %v", err)
-		//}
 		c.Receive <- msg
 	}
 }
