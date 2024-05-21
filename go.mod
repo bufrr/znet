@@ -2,10 +2,14 @@ module github.com/bufrr/znet
 
 go 1.22
 
+replace (
+	github.com/bufrr/net => /Users/bufrr/github/net
+)
+
 require (
-	github.com/bufrr/net v0.0.0-20240506091912-9df693e4b790
+	github.com/bufrr/net v0.0.0-20240520041443-be70eeed1c58
 	github.com/gorilla/websocket v1.5.1
-	golang.org/x/crypto v0.22.0
+	golang.org/x/crypto v0.23.0
 	google.golang.org/protobuf v1.33.0
 )
 
@@ -24,6 +28,6 @@ require (
 	github.com/xtaci/kcp-go v5.4.20+incompatible // indirect
 	github.com/xtaci/lossyconn v0.0.0-20200209145036-adba10fffc37 // indirect
 	github.com/xtaci/smux v1.5.24 // indirect
-	golang.org/x/net v0.24.0 // indirect
-	golang.org/x/sys v0.19.0 // indirect
+	golang.org/x/net v0.25.0 // indirect
+	golang.org/x/sys v0.20.0 // indirect
 )

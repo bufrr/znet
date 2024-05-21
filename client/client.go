@@ -5,11 +5,9 @@ import (
 	"errors"
 	"fmt"
 	"github.com/bufrr/znet/dht"
-	pb "github.com/bufrr/znet/protos"
 	"github.com/bufrr/znet/utils"
 	"github.com/gorilla/websocket"
 	"golang.org/x/crypto/sha3"
-	"google.golang.org/protobuf/proto"
 	"net"
 	"net/url"
 )
@@ -35,16 +33,16 @@ func (c *Client) Send(address string, msg []byte) error {
 	if c.conn == nil {
 		return errors.New("ws not connected")
 	}
-	zmsg := new(pb.ZMessage)
-	zmsg.From = c.key.Id()
-	to, err := hex.DecodeString(address)
-	if err != nil {
-		return err
-	}
-	zmsg.To = to
-	zmsg.Data = msg
-	m, _ := proto.Marshal(zmsg)
-	err = c.conn.WriteMessage(websocket.BinaryMessage, m)
+	//zmsg := new(pb.ZMessage)
+	//zmsg.From = c.key.Id()
+	//to, err := hex.DecodeString(address)
+	//if err != nil {
+	//	return err
+	//}
+	//zmsg.To = to
+	//zmsg.Data = msg
+	//m, _ := proto.Marshal(zmsg)
+	err := c.conn.WriteMessage(websocket.BinaryMessage, msg)
 	if err != nil {
 		return err
 	}

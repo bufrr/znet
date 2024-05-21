@@ -161,57 +161,31 @@ func (z *Znode) FindWsAddr(key []byte) (string, []byte, error) {
 
 func (z *Znode) ApplyBytesReceived() {
 	z.Nnet.MustApplyMiddleware(node.BytesReceived{Func: func(msg, msgID, srcID []byte, remoteNode *node.RemoteNode) ([]byte, bool) {
-		//innerMsg := new(pb.Innermsg)
-		//err := proto.Unmarshal(msg, innerMsg)
-		//if err != nil {
-		//	log.Fatal(err)
-		//}
-		//
-		//switch innerMsg.Identity {
-		//case pb.Identity_IDENTITY_SERVER:
-		//	_, err = z.Nnet.SendBytesBroadcastAsync(msg, protobuf.BROADCAST_TREE)
-		//	if err != nil {
-		//		log.Fatal(err)
-		//	}
-		//case pb.Identity_IDENTITY_CLIENT:
-		//	fmt.Printf("###Msg received: %x\n", z.Nnet.GetLocalNode().Id)
-		//	to := hex.EncodeToString(innerMsg.Message.To)
-		//	if ch, ok := z.msgBuffer[to]; ok {
-		//		ch <- innerMsg.Message.Data
-		//	} else {
-		//		ch := make(chan []byte, 100)
-		//		ch <- innerMsg.Message.Data
-		//		z.msgBuffer[to] = ch
-		//	}
-		//
-		//	resp, err := z.ReqVlc(msg)
-		//	if err != nil {
-		//		log.Fatal(err)
-		//	}
-		//	err = proto.Unmarshal(resp, innerMsg)
-		//
-		//	innerMsg.Identity = pb.Identity_IDENTITY_SERVER
-		//	msg, err = proto.Marshal(innerMsg)
-		//	if err != nil {
-		//		log.Fatal(err)
-		//	}
-		//
-		//	_, err = z.Nnet.SendBytesRelayReply(msgID, resp, srcID)
-		//	if err != nil {
-		//		log.Fatal(err)
-		//	}
-		//}
-
 		zmsg := new(pb.ZMessage)
 		err := proto.Unmarshal(msg, zmsg)
 		if err != nil {
 			log.Fatal(err)
 		}
 
-		//_, err = z.Nnet.SendBytesRelayReply(msgID, []byte{}, srcID)
-		//if err != nil {
-		//	log.Fatal(err)
-		//}
+		innerMsg := new(pb.Innermsg)
+		innerMsg.Identity = pb.Identity_IDENTITY_CLIENT
+		innerMsg.Message = zmsg
+		innerMsg.Action = pb.Action_ACTION_WRITE
+
+		msg, err = proto.Marshal(innerMsg)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		resp, err := z.ReqVlc(msg)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		_, err = z.Nnet.SendBytesRelayReply(msgID, resp, srcID)
+		if err != nil {
+			log.Printf("SendBytesRelayReply err: %v\n", err)
+		}
 
 		id := hex.EncodeToString(zmsg.To)
 		if _, ok := z.msgBuffer[id]; !ok {
