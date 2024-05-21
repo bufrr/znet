@@ -2,10 +2,6 @@ module github.com/bufrr/znet
 
 go 1.22
 
-replace (
-	github.com/bufrr/net => /Users/bufrr/github/net
-)
-
 require (
 	github.com/bufrr/net v0.0.0-20240520041443-be70eeed1c58
 	github.com/gorilla/websocket v1.5.1
