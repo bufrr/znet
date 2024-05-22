@@ -56,13 +56,16 @@ func (ws *WsServer) vlcHandler(w http.ResponseWriter, r *http.Request) {
 
 	go func() {
 		for {
-			_, message, err := conn.ReadMessage()
+			_, m, err := conn.ReadMessage()
 			if err != nil {
 				log.Println("ws read err:", err)
 				return
 			}
 
-			ws.z.handleZMsg(message)
+			err = ws.z.handleWsZMsg(m)
+			if err != nil {
+				log.Printf("handle ws msg err: %s", err)
+			}
 		}
 	}()
 

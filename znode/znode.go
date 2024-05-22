@@ -6,11 +6,15 @@ import (
 	"github.com/bufrr/net"
 	"github.com/bufrr/net/node"
 	"github.com/bufrr/net/overlay/chord"
+	"github.com/bufrr/net/overlay/routing"
+	"github.com/bufrr/net/protobuf"
+	"github.com/bufrr/net/util"
 	"github.com/bufrr/znet/config"
 	"github.com/bufrr/znet/dht"
 	pb "github.com/bufrr/znet/protos"
 	"google.golang.org/protobuf/proto"
 	"log"
+	"math/rand"
 	"net"
 	"strconv"
 	"sync"
@@ -123,17 +127,58 @@ func (z *Znode) ReqVlc(b []byte) ([]byte, error) {
 	return z.buf[:n], nil
 }
 
-func (z *Znode) handleZMsg(msg []byte) {
-	zmsg := new(pb.ZMessage)
-	err := proto.Unmarshal(msg, zmsg)
-	if err != nil {
-		log.Fatal(err)
+func (z *Znode) Id() string {
+	return hex.EncodeToString(z.keyPair.Id())
+}
+
+func (z *Znode) handleWsZMsg(msg []byte) error {
+	msgId, _ := util.RandBytes(32)
+	c, _ := z.getClock()
+	pbc := pb.Clock{Values: c}
+
+	ci := pb.ClockInfo{
+		Clock:     &pbc,
+		NodeId:    z.keyPair.Id(),
+		MessageId: msgId,
+		Count:     2,
+		CreateAt:  1243,
 	}
 
-	_, _, err = z.Nnet.SendBytesRelaySync(msg, zmsg.To)
-	if err != nil {
-		log.Fatal(err)
+	chat := pb.ZChat{
+		MessageData: hex.EncodeToString(msg),
+		Clock:       &ci,
 	}
+	d, err := proto.Marshal(&chat)
+	if err != nil {
+		return err
+	}
+
+	out := new(pb.OutboundMsg)
+	err = proto.Unmarshal(msg, out)
+	if err != nil {
+		return err
+	}
+
+	zMsg := &pb.ZMessage{
+		Data: d,
+		To:   out.To,
+		Type: pb.ZType_Z_TYPE_ZCHAT,
+	}
+
+	b, _ := proto.Marshal(zMsg)
+
+	_, _, err = z.Nnet.SendBytesRelaySync(b, zMsg.To)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (z *Znode) getClock() (map[string]uint64, error) {
+	v := rand.Int63()
+	return map[string]uint64{
+		z.Id(): uint64(v),
+	}, nil
 }
 
 func (z *Znode) FindWsAddr(key []byte) (string, []byte, error) {
@@ -191,7 +236,22 @@ func (z *Znode) ApplyBytesReceived() {
 		if _, ok := z.msgBuffer[id]; !ok {
 			z.msgBuffer[id] = make(chan []byte, 100)
 		}
-		z.msgBuffer[id] <- zmsg.Data
+
+		zchat := new(pb.ZChat)
+		err = proto.Unmarshal(zmsg.Data, zchat)
+		if err != nil {
+			log.Printf("parse outbound msg err: %s", err)
+			return nil, false
+		}
+
+		data, _ := hex.DecodeString(zchat.MessageData)
+		out := new(pb.OutboundMsg)
+		err = proto.Unmarshal(data, out)
+		if err != nil {
+			return nil, false
+		}
+
+		z.msgBuffer[id] <- out.Data
 
 		log.Printf("Receive message from %x by %x", srcID, remoteNode.Id)
 		log.Printf("ws port: %d", z.config.WsPort)
@@ -221,4 +281,16 @@ func (z *Znode) ApplyNeighborRemoved() {
 		delete(z.Neighbors, string(remoteNode.Id))
 		return true
 	}})
+}
+
+func (z *Znode) ApplyVlcOnRelay() {
+	z.Nnet.MustApplyMiddleware(routing.RemoteMessageRouted{
+		Func: func(message *node.RemoteMessage, localNode *node.LocalNode, nodes []*node.RemoteNode) (*node.RemoteMessage, *node.LocalNode, []*node.RemoteNode, bool) {
+			if message.Msg.MessageType != protobuf.BYTES {
+				return message, localNode, nodes, false
+			}
+
+			return message, localNode, nodes, true
+		},
+	})
 }

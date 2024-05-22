@@ -59,6 +59,7 @@ func main() {
 		znd.ApplyBytesReceived()
 		znd.ApplyNeighborAdded()
 		znd.ApplyNeighborRemoved()
+		znd.ApplyVlcOnRelay()
 
 		znets = append(znets, znd)
 	}
@@ -104,6 +105,7 @@ func seedStart() *znode.Znode {
 	znd.ApplyBytesReceived()
 	znd.ApplyNeighborAdded()
 	znd.ApplyNeighborRemoved()
+	znd.ApplyVlcOnRelay()
 
 	znd.Start(true)
 

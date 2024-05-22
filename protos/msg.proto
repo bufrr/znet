@@ -169,3 +169,9 @@ message QueryByMsgID {
 message QueryByTableKeyID {
   uint64 last_pos = 1;
 }
+
+message OutboundMsg {
+  bytes from = 1;
+  bytes to = 2;
+  bytes data = 3;
+}

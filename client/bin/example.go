@@ -8,7 +8,9 @@ import (
 	pb "github.com/bufrr/znet/protos"
 	"google.golang.org/protobuf/proto"
 	"log"
+	"math/rand"
 	"os"
+	"strconv"
 )
 
 func main() {
@@ -25,23 +27,14 @@ func main() {
 
 	//addr1 := client1.Address()
 	addr2 := client2.Address()
-
-	data := randomMsg(addr2)
-
-	err = client1.Send(addr2, data)
+	err = client1.Send(addr2, []byte("hello hetu!"+strconv.FormatInt(rand.Int63(), 10)))
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	msg := <-client2.Receive
 
-	chat := new(pb.ZChat)
-	err = proto.Unmarshal(msg, chat)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	fmt.Println("msg: ", chat.MessageData)
+	fmt.Println("msg: ", string(msg))
 }
 
 func randomMsg(to string) []byte {

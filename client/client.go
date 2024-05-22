@@ -3,11 +3,13 @@ package client
 import (
 	"encoding/hex"
 	"errors"
-	"fmt"
 	"github.com/bufrr/znet/dht"
+	pb "github.com/bufrr/znet/protos"
 	"github.com/bufrr/znet/utils"
 	"github.com/gorilla/websocket"
 	"golang.org/x/crypto/sha3"
+	"google.golang.org/protobuf/proto"
+	"log"
 	"net"
 	"net/url"
 )
@@ -29,20 +31,20 @@ type Client struct {
 	config  *Config
 }
 
-func (c *Client) Send(address string, msg []byte) error {
+func (c *Client) Send(address string, data []byte) error {
 	if c.conn == nil {
 		return errors.New("ws not connected")
 	}
-	//zmsg := new(pb.ZMessage)
-	//zmsg.From = c.key.Id()
-	//to, err := hex.DecodeString(address)
-	//if err != nil {
-	//	return err
-	//}
-	//zmsg.To = to
-	//zmsg.Data = msg
-	//m, _ := proto.Marshal(zmsg)
-	err := c.conn.WriteMessage(websocket.BinaryMessage, msg)
+	outMsg := new(pb.OutboundMsg)
+	outMsg.From = c.key.Id()
+	to, err := hex.DecodeString(address)
+	if err != nil {
+		return err
+	}
+	outMsg.To = to
+	outMsg.Data = data
+	m, _ := proto.Marshal(outMsg)
+	err = c.conn.WriteMessage(websocket.BinaryMessage, m)
 	if err != nil {
 		return err
 	}
@@ -83,7 +85,7 @@ func (c *Client) connect(addr string) error {
 	}
 
 	go c.readMsg()
-	fmt.Println("connected to ", addr)
+	log.Println("connected to ", addr)
 
 	return nil
 }
@@ -92,7 +94,7 @@ func (c *Client) readMsg() {
 	for {
 		_, msg, err := c.conn.ReadMessage()
 		if err != nil {
-			fmt.Println("read conn err: ", err)
+			log.Println("read conn err: ", err)
 			return
 		}
 		c.Receive <- msg
