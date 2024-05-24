@@ -20,7 +20,7 @@ type Config struct {
 
 func NewClientConfig() *Config {
 	return &Config{
-		SeedRpcServer: []string{"http://127.0.0.1:12345/rpc12345"},
+		SeedRpcServer: []string{"http://127.0.0.1:13333/rpc13333"},
 	}
 }
 
