@@ -25,13 +25,16 @@ func main() {
 		log.Fatal(err)
 	}
 
+	seedList := []string{*remote}
+
 	conf := config.Config{
 		Transport: "tcp",
 		P2pPort:   uint16(*p2pPort),
 		Keypair:   keypair,
 		WsPort:    uint16(*wsPort),
-		UdpPort:   8080,
+		UdpPort:   8050,
 		VlcAddr:   *vlcAddr,
+		SeedList:  seedList,
 	}
 
 	znd, err := znode.NewZnode(conf)
@@ -43,6 +46,9 @@ func main() {
 	fmt.Println("id:", zid)
 
 	znd.ApplyBytesReceived()
+	znd.ApplyNeighborRemoved()
+	znd.ApplyNeighborAdded()
+	znd.ApplyVlcOnRelay()
 
 	isCreate := len(*remote) == 0
 	err = znd.Start(isCreate)
@@ -50,7 +56,7 @@ func main() {
 		log.Fatal(err)
 	}
 	if !isCreate {
-		err = znd.Nnet.Join(*remote)
+		err = znd.Nnet.Join(seedList[0])
 		if err != nil {
 			log.Fatal(err)
 		}
