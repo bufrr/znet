@@ -9,7 +9,7 @@ for i in {1..10}
 do
     id=$base_id$i
     echo "Running instance $i"
-    go run main.go --remote tcp://192.168.1.110:33333 --id ${id} --p2p ${p2p_port} --ws ${ws_port} --rpc ${rpc_port} --remote-rpc http://192.168.1.110:13333 &
+    go run main.go --remote tcp://192.168.1.110:33333 --id ${id} --p2p ${p2p_port} --ws ${ws_port} --rpc ${rpc_port} --remoterpc http://192.168.1.110:13333/rpc13333 &
     ((p2p_port++))
     ((ws_port++))
     ((rpc_port++))

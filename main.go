@@ -18,7 +18,7 @@ func main() {
 	rpcPort := flag.Uint("rpc", config.DefaultRpcPort, "rpc address")
 	id := flag.String("id", "", "node id")
 	remote := flag.String("remote", "", "remote node address")
-	remoteRpc := flag.String("remoteRpc", "", "remote rpc address")
+	remoteRpc := flag.String("remoterpc", "", "remote rpc address")
 	domain := flag.String("domain", "", "domain")
 	flag.Parse()
 
@@ -70,7 +70,7 @@ func main() {
 		log.Fatal(err)
 	}
 	if !isCreate {
-		err = znd.Nnet.Join(seedList[0])
+		err = znd.Nnet.Join(*remote)
 		if err != nil {
 			log.Fatal(err)
 		}
