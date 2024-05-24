@@ -46,7 +46,7 @@ func (rs *RpcServer) Start() error {
 
 	port := strconv.Itoa(int(rs.z.config.RpcPort))
 	http.HandleFunc("/rpc"+port, rs.rpcHandler)
-	rs.httpListener = "127.0.0.1:" + port
+	rs.httpListener = "0.0.0.0:" + port
 	rs.httpServer = &http.Server{
 		Addr: rs.httpListener,
 	}

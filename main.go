@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/bufrr/znet/config"
 	"github.com/bufrr/znet/dht"
+	"github.com/bufrr/znet/utils"
 	"github.com/bufrr/znet/znode"
 	"log"
 )
@@ -39,6 +40,14 @@ func main() {
 		RpcPort:   uint16(*rpcPort),
 		SeedList:  seedList,
 		Domain:    *domain,
+	}
+
+	if len(*domain) == 0 {
+		ip, err := utils.GetExtIp(conf.SeedList[0])
+		if err != nil {
+			log.Fatal("get ext ip err:", err)
+		}
+		conf.Domain = ip
 	}
 
 	znd, err := znode.NewZnode(conf)
