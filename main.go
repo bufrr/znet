@@ -14,6 +14,7 @@ func main() {
 	p2pPort := flag.Uint("p2p", config.DefaultP2pPort, "p2p port")
 	wsPort := flag.Uint("ws", config.DefaultWsPort, "websocket port")
 	vlcAddr := flag.String("vlc", config.DefaultVlcAddr, "vlc address")
+	rpcPort := flag.Uint("rpc", config.DefaultRpcPort, "rpc address")
 	id := flag.String("id", "", "node id")
 	remote := flag.String("remote", "", "remote node address")
 	flag.Parse()
@@ -34,6 +35,7 @@ func main() {
 		WsPort:    uint16(*wsPort),
 		UdpPort:   8050,
 		VlcAddr:   *vlcAddr,
+		RpcPort:   uint16(*rpcPort),
 		SeedList:  seedList,
 	}
 

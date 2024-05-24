@@ -2,6 +2,7 @@ package config
 
 import "github.com/bufrr/znet/dht"
 
+const DefaultRpcPort = 13333
 const DefaultP2pPort = 33333
 const DefaultWsPort = 23333
 const DefaultUdpPort = 8050
