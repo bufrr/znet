@@ -17,6 +17,7 @@ func main() {
 	rpcPort := flag.Uint("rpc", config.DefaultRpcPort, "rpc address")
 	id := flag.String("id", "", "node id")
 	remote := flag.String("remote", "", "remote node address")
+	domain := flag.String("domain", "", "domain")
 	flag.Parse()
 
 	seed := [32]byte{}
@@ -37,6 +38,7 @@ func main() {
 		VlcAddr:   *vlcAddr,
 		RpcPort:   uint16(*rpcPort),
 		SeedList:  seedList,
+		Domain:    *domain,
 	}
 
 	znd, err := znode.NewZnode(conf)
