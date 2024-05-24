@@ -18,6 +18,7 @@ func main() {
 	rpcPort := flag.Uint("rpc", config.DefaultRpcPort, "rpc address")
 	id := flag.String("id", "", "node id")
 	remote := flag.String("remote", "", "remote node address")
+	remoteRpc := flag.String("remoteRpc", "", "remote rpc address")
 	domain := flag.String("domain", "", "domain")
 	flag.Parse()
 
@@ -28,7 +29,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	seedList := []string{*remote}
+	seedList := []string{*remoteRpc}
 
 	conf := config.Config{
 		Transport: "tcp",
