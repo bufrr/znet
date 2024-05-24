@@ -7,7 +7,7 @@ import (
 	"github.com/bufrr/net/node"
 	"github.com/bufrr/net/overlay/chord"
 	"github.com/bufrr/net/overlay/routing"
-	"github.com/bufrr/net/protobuf"
+	protobuf "github.com/bufrr/net/protobuf"
 	"github.com/bufrr/net/util"
 	"github.com/bufrr/znet/config"
 	"github.com/bufrr/znet/dht"
@@ -144,17 +144,17 @@ func (z *Znode) handleWsZMsg(msg []byte) error {
 		CreateAt:  1243,
 	}
 
-	chat := pb.ZChat{
-		MessageData: hex.EncodeToString(msg),
-		Clock:       &ci,
-	}
-	d, err := proto.Marshal(&chat)
+	out := new(pb.OutboundMsg)
+	err := proto.Unmarshal(msg, out)
 	if err != nil {
 		return err
 	}
 
-	out := new(pb.OutboundMsg)
-	err = proto.Unmarshal(msg, out)
+	chat := pb.ZChat{
+		MessageData: hex.EncodeToString(out.Data),
+		Clock:       &ci,
+	}
+	d, err := proto.Marshal(&chat)
 	if err != nil {
 		return err
 	}
@@ -227,6 +227,17 @@ func (z *Znode) ApplyBytesReceived() {
 			log.Fatal(err)
 		}
 
+		innerMsg = new(pb.Innermsg)
+		err = proto.Unmarshal(resp, innerMsg)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		resp, err = proto.Marshal(innerMsg.Message)
+		if err != nil {
+			log.Fatal(err)
+		}
+
 		_, err = z.Nnet.SendBytesRelayReply(msgID, resp, srcID)
 		if err != nil {
 			log.Printf("SendBytesRelayReply err: %v\n", err)
@@ -244,18 +255,17 @@ func (z *Znode) ApplyBytesReceived() {
 			return nil, false
 		}
 
-		data, _ := hex.DecodeString(zchat.MessageData)
-		out := new(pb.OutboundMsg)
-		err = proto.Unmarshal(data, out)
+		data, err := hex.DecodeString(zchat.MessageData)
 		if err != nil {
+			log.Printf("hex decode err: %s", err)
 			return nil, false
 		}
 
-		z.msgBuffer[id] <- out.Data
+		z.msgBuffer[id] <- data
 
-		log.Printf("Receive message from %x by %x", srcID, remoteNode.Id)
-		log.Printf("ws port: %d", z.config.WsPort)
-		log.Printf("data: %x", zmsg.Data)
+		//log.Printf("Receive message from %x by %x\n", srcID, remoteNode.Id)
+		//log.Printf("ws port: %d\n", z.config.WsPort)
+		//log.Printf("data: %x", zmsg.Data)
 
 		return msg, true
 	}})
@@ -286,10 +296,39 @@ func (z *Znode) ApplyNeighborRemoved() {
 func (z *Znode) ApplyVlcOnRelay() {
 	z.Nnet.MustApplyMiddleware(routing.RemoteMessageRouted{
 		Func: func(message *node.RemoteMessage, localNode *node.LocalNode, nodes []*node.RemoteNode) (*node.RemoteMessage, *node.LocalNode, []*node.RemoteNode, bool) {
-			if message.Msg.MessageType != protobuf.BYTES {
+			if message.Msg.MessageType != protobuf.MessageType_BYTES {
 				return message, localNode, nodes, false
 			}
 
+			b := new(protobuf.Bytes)
+			err := proto.Unmarshal(message.Msg.Message, b)
+			if err != nil {
+				log.Printf("Unmarshal bytes err: %v\n", err)
+				return message, localNode, nodes, false
+			}
+
+			zMsg := new(pb.ZMessage)
+			err = proto.Unmarshal(b.Data, zMsg)
+			if err != nil {
+				log.Printf("Unmarshal zMsg err: %v\n", err)
+				return message, localNode, nodes, false
+			}
+
+			if zMsg.Type != pb.ZType_Z_TYPE_ZCHAT {
+				log.Printf("zMsg type is not Z_TYPE_ZCHAT")
+				return message, localNode, nodes, false
+			}
+
+			//zChat := new(pb.ZChat)
+			//err = proto.Unmarshal(zMsg.Data, zChat)
+			//if err != nil {
+			//	log.Printf("Unmarshal zChat err: %v\n", err)
+			//	return message, localNode, nodes, false
+			//}
+
+			//clockInfo := zChat.Clock
+
+			log.Printf("Receive message %s at node %s from: %s to: %s\n", zMsg.Data, z.Id(), hex.EncodeToString(zMsg.From), hex.EncodeToString(zMsg.To))
 			return message, localNode, nodes, true
 		},
 	})

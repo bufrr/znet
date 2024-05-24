@@ -2,15 +2,16 @@ module github.com/bufrr/znet
 
 go 1.22
 
+replace github.com/bufrr/net => /Users/bufrr/github/net
+
 require (
 	github.com/bufrr/net v0.0.0-20240520041443-be70eeed1c58
 	github.com/gorilla/websocket v1.5.1
 	golang.org/x/crypto v0.23.0
-	google.golang.org/protobuf v1.33.0
+	google.golang.org/protobuf v1.34.1
 )
 
 require (
-	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/hashicorp/yamux v0.1.1 // indirect
 	github.com/imdario/mergo v0.3.16 // indirect
 	github.com/klauspost/cpuid/v2 v2.2.7 // indirect
@@ -26,4 +27,5 @@ require (
 	github.com/xtaci/smux v1.5.24 // indirect
 	golang.org/x/net v0.25.0 // indirect
 	golang.org/x/sys v0.20.0 // indirect
+	golang.org/x/xerrors v0.0.0-20200804184101-5ec99f83aff1 // indirect
 )
