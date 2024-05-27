@@ -57,7 +57,7 @@ func randomMsg(to string) []byte {
 
 	r := []byte("hello hetu! " + string(rune(os.Getpid())))
 	chat := pb.ZChat{
-		MessageData: string(r),
+		MessageData: r,
 		Clock:       &ci,
 	}
 	d, err := proto.Marshal(&chat)

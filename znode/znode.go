@@ -155,7 +155,7 @@ func (z *Znode) handleWsZMsg(msg []byte) error {
 	}
 
 	chat := pb.ZChat{
-		MessageData: hex.EncodeToString(out.Data),
+		MessageData: out.Data,
 		Clock:       &ci,
 	}
 	d, err := proto.Marshal(&chat)
@@ -260,13 +260,7 @@ func (z *Znode) ApplyBytesReceived() {
 			return nil, false
 		}
 
-		data, err := hex.DecodeString(zchat.MessageData)
-		if err != nil {
-			log.Printf("hex decode err: %s", err)
-			return nil, false
-		}
-
-		z.msgBuffer[id] <- data
+		z.msgBuffer[id] <- zchat.MessageData
 
 		return msg, true
 	}})

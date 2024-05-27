@@ -108,7 +108,7 @@ enum PushType {
 }
 
 message ZChat {
-  string message_data = 1;
+  bytes message_data = 1;
   ClockInfo clock = 2;
 }
 
