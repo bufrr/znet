@@ -329,7 +329,7 @@ func (z *Znode) ApplyVlcOnRelay() {
 
 			//clockInfo := zChat.Clock
 
-			log.Printf("Receive message %s at node %s from: %s to: %s\n", zMsg.Id, z.Id(), hex.EncodeToString(zMsg.From), hex.EncodeToString(zMsg.To))
+			log.Printf("Receive message %x at node %s from: %s to: %s\n", zMsg.Id, z.Id(), hex.EncodeToString(zMsg.From), hex.EncodeToString(zMsg.To))
 			return message, localNode, nodes, true
 		},
 	})

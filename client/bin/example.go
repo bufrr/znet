@@ -14,8 +14,8 @@ import (
 )
 
 func main() {
-	//rpcServer := []string{"http://127.0.0.1:12345/rpc12345"}
-	rpcServer := []string{"http://192.168.1.110:13333/rpc13333"}
+	rpcServer := []string{"http://127.0.0.1:12345/rpc12345"}
+	//rpcServer := []string{"http://192.168.1.110:13333/rpc13333"}
 
 	client1 := client.NewClient([]byte("test1"), rpcServer)
 	client2 := client.NewClient([]byte("test5"), rpcServer)
