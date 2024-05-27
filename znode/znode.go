@@ -91,6 +91,10 @@ func NewZnode(c config.Config) (*Znode, error) {
 	}, nil
 }
 
+func (z *Znode) GetConfig() *config.Config {
+	return &z.config
+}
+
 func (z *Znode) Start(isCreate bool) error {
 	wsServer := NewWsServer(z)
 	go wsServer.Start()

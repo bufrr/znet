@@ -76,7 +76,7 @@ func main() {
 		}
 	}
 
-	fmt.Println("addr:", znd.Nnet.GetLocalNode().Addr)
+	fmt.Println("addr:", znd.GetConfig().Domain)
 
 	select {}
 }
