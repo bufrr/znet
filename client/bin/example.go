@@ -14,8 +14,9 @@ import (
 )
 
 func main() {
-	client1 := client.NewClient([]byte("test1"))
-	client2 := client.NewClient([]byte("test5"))
+	rpcServer := []string{"http://127.0.0.1:12345/rpc12345"}
+	client1 := client.NewClient([]byte("test1"), rpcServer)
+	client2 := client.NewClient([]byte("test5"), rpcServer)
 	err := client1.Connect()
 	if err != nil {
 		log.Fatal(err)
@@ -25,7 +26,6 @@ func main() {
 		log.Fatal(err)
 	}
 
-	//addr1 := client1.Address()
 	addr2 := client2.Address()
 	err = client1.Send(addr2, []byte("hello hetu!"+strconv.FormatInt(rand.Int63(), 10)))
 	if err != nil {

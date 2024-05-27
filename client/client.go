@@ -3,6 +3,7 @@ package client
 import (
 	"encoding/hex"
 	"errors"
+	"github.com/bufrr/net/util"
 	"github.com/bufrr/znet/dht"
 	pb "github.com/bufrr/znet/protos"
 	"github.com/bufrr/znet/utils"
@@ -18,9 +19,9 @@ type Config struct {
 	SeedRpcServer []string
 }
 
-func NewClientConfig() *Config {
+func NewClientConfig(rpcServer []string) *Config {
 	return &Config{
-		SeedRpcServer: []string{"http://127.0.0.1:13333/rpc13333"},
+		SeedRpcServer: rpcServer,
 	}
 }
 
@@ -43,6 +44,7 @@ func (c *Client) Send(address string, data []byte) error {
 	}
 	outMsg.To = to
 	outMsg.Data = data
+	outMsg.Id, _ = util.RandBytes(32)
 	m, _ := proto.Marshal(outMsg)
 	err = c.conn.WriteMessage(websocket.BinaryMessage, m)
 	if err != nil {
@@ -51,11 +53,11 @@ func (c *Client) Send(address string, data []byte) error {
 	return nil
 }
 
-func NewClient(seed []byte) *Client {
+func NewClient(seed []byte, rpcServer []string) *Client {
 	h := sha3.New256().Sum(seed)
 	keypair, _ := dht.GenerateKeyPair(h[:32])
 	recv := make(chan []byte)
-	c := NewClientConfig()
+	c := NewClientConfig(rpcServer)
 
 	return &Client{nil, keypair, recv, c}
 }
@@ -85,7 +87,7 @@ func (c *Client) connect(addr string) error {
 	}
 
 	go c.readMsg()
-	log.Println("connected to ", addr)
+	log.Println("connected to", addr)
 
 	return nil
 }

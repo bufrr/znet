@@ -263,10 +263,6 @@ func (z *Znode) ApplyBytesReceived() {
 
 		z.msgBuffer[id] <- data
 
-		//log.Printf("Receive message from %x by %x\n", srcID, remoteNode.Id)
-		//log.Printf("ws port: %d\n", z.config.WsPort)
-		//log.Printf("data: %x", zmsg.Data)
-
 		return msg, true
 	}})
 }
