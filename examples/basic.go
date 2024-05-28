@@ -24,6 +24,8 @@ func main() {
 	sl = append(sl, seed)
 	znets := make([]*znode.Znode, 0)
 
+	vlcports := []string{"8010", "8020", "8030", "8040", "8050", "8051", "8060", "8070", "8080", "8090", "8100"}
+
 	for i := 0; i < 10; i++ {
 		h := sha3.New256().Sum([]byte("Hello" + string(rune(i))))
 		keypair, _ := dht.GenerateKeyPair(h[:32])
@@ -39,7 +41,7 @@ func main() {
 			WsPort:    uint16(ws),
 			RpcPort:   uint16(rpc),
 			UdpPort:   config.DefaultUdpPort,
-			VlcAddr:   "127.0.0.1:8050",
+			VlcAddr:   "127.0.0.1:" + vlcports[i%5],
 			SeedList:  sl,
 		}
 

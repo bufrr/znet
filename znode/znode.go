@@ -50,6 +50,7 @@ type Znode struct {
 	buf       [65536]byte
 	config    config.Config
 	msgBuffer map[string]chan []byte
+	cache     map[string]struct{}
 }
 
 func NewZnode(c config.Config) (*Znode, error) {
@@ -88,6 +89,7 @@ func NewZnode(c config.Config) (*Znode, error) {
 		config:    c,
 		Neighbors: neighbors,
 		msgBuffer: make(map[string]chan []byte),
+		cache:     make(map[string]struct{}),
 	}, nil
 }
 
@@ -127,15 +129,25 @@ func Create(transport string, port uint16, id []byte) (*nnet.NNet, error) {
 // 6. Marshals the Innermsg's Message field into response using protobuf
 // 7. Returns the response and nil error if successful, otherwise returns nil response and the error encountered
 // reqVlc takes a byte array b, writes the bytes to z.vlcConn, reads the response from z.vlcConn, and returns the response and error
-func (z *Znode) readVlc(zMsg []byte) ([]byte, error) {
+func (z *Znode) readVlc(zMsg []byte, isClient bool) ([]byte, error) {
 	zm := new(pb.ZMessage)
 	err := proto.Unmarshal(zMsg, zm)
 	if err != nil {
 		return nil, err
 	}
 
+	id := hex.EncodeToString(zm.Id)
+	if _, ok := z.cache[id]; ok {
+		log.Printf("message already cached: %s", id)
+		return zMsg, nil
+	}
+	z.cache[id] = struct{}{}
+
 	innerMsg := new(pb.Innermsg)
 	innerMsg.Identity = pb.Identity_IDENTITY_CLIENT
+	if !isClient {
+		innerMsg.Identity = pb.Identity_IDENTITY_SERVER
+	}
 	innerMsg.Message = zm
 	innerMsg.Action = pb.Action_ACTION_WRITE
 
@@ -218,7 +230,7 @@ func (z *Znode) handleWsZMsg(msg []byte) error {
 	b, _ := proto.Marshal(zMsg)
 
 	// read local vlc first
-	zm, err := z.readVlc(b)
+	zm, err := z.readVlc(b, true)
 	if err != nil {
 		return err
 	}
@@ -268,7 +280,7 @@ func (z *Znode) ApplyBytesReceived() {
 			log.Fatal(err)
 		}
 
-		resp, err := z.readVlc(msg)
+		resp, err := z.readVlc(msg, false)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -283,10 +295,23 @@ func (z *Znode) ApplyBytesReceived() {
 			z.msgBuffer[id] = make(chan []byte, 100)
 		}
 
-		zchat := new(pb.ZChat)
-		err = proto.Unmarshal(zmsg.Data, zchat)
+		zc := new(pb.ZClock)
+		err = proto.Unmarshal(zmsg.Data, zc)
 		if err != nil {
-			log.Printf("parse outbound msg err: %s", err)
+			log.Printf("parse z msg err: %s", err)
+			return nil, false
+		}
+		et := new(pb.EventTrigger)
+		err = proto.Unmarshal(zc.Data, et)
+		if err != nil {
+			log.Printf("parse z clock err: %s", err)
+			return nil, false
+		}
+
+		zchat := new(pb.ZChat)
+		err = proto.Unmarshal(et.Message.Data, zchat)
+		if err != nil {
+			log.Printf("parse zchat err: %s", err)
 			return nil, false
 		}
 
@@ -344,7 +369,7 @@ func (z *Znode) ApplyVlcOnRelay() {
 				return message, localNode, nodes, false
 			}
 
-			resp, err := z.readVlc(b.Data)
+			resp, err := z.readVlc(b.Data, false)
 			if err != nil {
 				log.Printf("readVlc err: %v\n", err)
 				return message, localNode, nodes, false

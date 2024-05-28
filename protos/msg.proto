@@ -61,6 +61,7 @@ enum ClockType {
 // Server Clock Message
 message EventTrigger {
   ClockInfo clock_info = 1;
+  ZMessage message = 2;
 }
 
 message DiffReq {

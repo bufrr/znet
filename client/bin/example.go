@@ -18,7 +18,7 @@ func main() {
 	//rpcServer := []string{"http://192.168.1.110:13333/rpc13333"}
 
 	client1 := client.NewClient([]byte("test1"), rpcServer)
-	client2 := client.NewClient([]byte("test5"), rpcServer)
+	client2 := client.NewClient([]byte("test8"), rpcServer)
 	err := client1.Connect()
 	if err != nil {
 		log.Fatal(err)
