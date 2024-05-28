@@ -41,7 +41,7 @@ func main() {
 			WsPort:    uint16(ws),
 			RpcPort:   uint16(rpc),
 			UdpPort:   config.DefaultUdpPort,
-			VlcAddr:   "127.0.0.1:" + vlcports[i%5],
+			VlcAddr:   "127.0.0.1:" + vlcports[i],
 			SeedList:  sl,
 		}
 
