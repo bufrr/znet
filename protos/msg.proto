@@ -177,3 +177,9 @@ message OutboundMsg {
   bytes to = 3;
   bytes data = 4;
 }
+
+message InboundMsg {
+  bytes id = 1;
+  bytes from = 2;
+  bytes data = 3;
+}

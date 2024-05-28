@@ -2,6 +2,7 @@ package znode
 
 import (
 	"encoding/hex"
+	pb "github.com/bufrr/znet/protos"
 	"github.com/gorilla/websocket"
 	"log"
 	"net"
@@ -52,7 +53,7 @@ func (ws *WsServer) vlcHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	id := hex.EncodeToString(message)
 	ws.clients[id] = conn
-	ws.z.msgBuffer[id] = make(chan []byte, 100)
+	ws.z.msgBuffer[id] = make(chan *pb.InboundMsg, 100)
 
 	go func() {
 		for {
@@ -73,7 +74,7 @@ func (ws *WsServer) vlcHandler(w http.ResponseWriter, r *http.Request) {
 		for {
 			select {
 			case msg := <-ws.z.msgBuffer[id]:
-				err = conn.WriteMessage(websocket.BinaryMessage, msg)
+				err = conn.WriteMessage(websocket.BinaryMessage, msg.Data)
 				if err != nil {
 					log.Println("ws write err:", err)
 					return

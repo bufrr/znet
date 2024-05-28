@@ -49,7 +49,7 @@ type Znode struct {
 	vlcConn   *net.UDPConn
 	buf       [65536]byte
 	config    config.Config
-	msgBuffer map[string]chan []byte
+	msgBuffer map[string]chan *pb.InboundMsg
 	cache     map[string]struct{}
 }
 
@@ -88,7 +88,7 @@ func NewZnode(c config.Config) (*Znode, error) {
 		buf:       [65536]byte(b),
 		config:    c,
 		Neighbors: neighbors,
-		msgBuffer: make(map[string]chan []byte),
+		msgBuffer: make(map[string]chan *pb.InboundMsg),
 		cache:     make(map[string]struct{}),
 	}, nil
 }
@@ -292,7 +292,7 @@ func (z *Znode) ApplyBytesReceived() {
 
 		id := hex.EncodeToString(zmsg.To)
 		if _, ok := z.msgBuffer[id]; !ok {
-			z.msgBuffer[id] = make(chan []byte, 100)
+			z.msgBuffer[id] = make(chan *pb.InboundMsg, 100)
 		}
 
 		zc := new(pb.ZClock)
@@ -315,7 +315,11 @@ func (z *Znode) ApplyBytesReceived() {
 			return nil, false
 		}
 
-		z.msgBuffer[id] <- zchat.MessageData
+		inboundMsg := new(pb.InboundMsg)
+		inboundMsg.Id = zmsg.Id
+		inboundMsg.From = zmsg.From
+		inboundMsg.Data = zchat.MessageData
+		z.msgBuffer[id] <- inboundMsg
 
 		return msg, true
 	}})
