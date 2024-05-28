@@ -213,7 +213,7 @@ func queryByKeyId(rs RpcServer, params map[string]interface{}, ctx context.Conte
 
 	data, _ := proto.Marshal(&innerMsg)
 
-	resp, err := rs.z.ReqVlc(data)
+	resp, err := rs.z.reqVlc(data)
 	if err != nil {
 		return nil
 	}

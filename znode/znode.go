@@ -118,7 +118,52 @@ func Create(transport string, port uint16, id []byte) (*nnet.NNet, error) {
 	return nn, nil
 }
 
-func (z *Znode) ReqVlc(b []byte) ([]byte, error) {
+// readVlc reads a ZMessage byte array and performs the following steps:
+// 1. Unmarshals the ZMessage into zm using protobuf
+// 2. Creates a new Innermsg object and sets its Identity, Message, and Action fields
+// 3. Marshals the Innermsg into message using protobuf
+// 4. Calls the reqVlc method to send the message to VLC and receive the response
+// 5. Unmarshals the response into innerMsg using protobuf
+// 6. Marshals the Innermsg's Message field into response using protobuf
+// 7. Returns the response and nil error if successful, otherwise returns nil response and the error encountered
+// reqVlc takes a byte array b, writes the bytes to z.vlcConn, reads the response from z.vlcConn, and returns the response and error
+func (z *Znode) readVlc(zMsg []byte) ([]byte, error) {
+	zm := new(pb.ZMessage)
+	err := proto.Unmarshal(zMsg, zm)
+	if err != nil {
+		return nil, err
+	}
+
+	innerMsg := new(pb.Innermsg)
+	innerMsg.Identity = pb.Identity_IDENTITY_CLIENT
+	innerMsg.Message = zm
+	innerMsg.Action = pb.Action_ACTION_WRITE
+
+	msg, err := proto.Marshal(innerMsg)
+	if err != nil {
+		return nil, err
+	}
+
+	resp, err := z.reqVlc(msg)
+	if err != nil {
+		return nil, err
+	}
+
+	innerMsg = new(pb.Innermsg)
+	err = proto.Unmarshal(resp, innerMsg)
+	if err != nil {
+		return nil, err
+	}
+
+	resp, err = proto.Marshal(innerMsg.Message)
+	if err != nil {
+		return nil, err
+	}
+
+	return resp, nil
+}
+
+func (z *Znode) reqVlc(b []byte) ([]byte, error) {
 	_, err := z.vlcConn.Write(b)
 	if err != nil {
 		return nil, err
@@ -172,7 +217,13 @@ func (z *Znode) handleWsZMsg(msg []byte) error {
 
 	b, _ := proto.Marshal(zMsg)
 
-	_, _, err = z.Nnet.SendBytesRelaySync(b, zMsg.To)
+	// read local vlc first
+	zm, err := z.readVlc(b)
+	if err != nil {
+		return err
+	}
+
+	_, _, err = z.Nnet.SendBytesRelaySync(zm, zMsg.To)
 	if err != nil {
 		return err
 	}
@@ -217,28 +268,7 @@ func (z *Znode) ApplyBytesReceived() {
 			log.Fatal(err)
 		}
 
-		innerMsg := new(pb.Innermsg)
-		innerMsg.Identity = pb.Identity_IDENTITY_CLIENT
-		innerMsg.Message = zmsg
-		innerMsg.Action = pb.Action_ACTION_WRITE
-
-		msg, err = proto.Marshal(innerMsg)
-		if err != nil {
-			log.Fatal(err)
-		}
-
-		resp, err := z.ReqVlc(msg)
-		if err != nil {
-			log.Fatal(err)
-		}
-
-		innerMsg = new(pb.Innermsg)
-		err = proto.Unmarshal(resp, innerMsg)
-		if err != nil {
-			log.Fatal(err)
-		}
-
-		resp, err = proto.Marshal(innerMsg.Message)
+		resp, err := z.readVlc(msg)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -314,14 +344,17 @@ func (z *Znode) ApplyVlcOnRelay() {
 				return message, localNode, nodes, false
 			}
 
-			//zChat := new(pb.ZChat)
-			//err = proto.Unmarshal(zMsg.Data, zChat)
-			//if err != nil {
-			//	log.Printf("Unmarshal zChat err: %v\n", err)
-			//	return message, localNode, nodes, false
-			//}
-
-			//clockInfo := zChat.Clock
+			resp, err := z.readVlc(b.Data)
+			if err != nil {
+				log.Printf("readVlc err: %v\n", err)
+				return message, localNode, nodes, false
+			}
+			b.Data = resp
+			message.Msg.Message, err = proto.Marshal(b)
+			if err != nil {
+				log.Printf("Marshal bytes err: %v\n", err)
+				return message, localNode, nodes, false
+			}
 
 			log.Printf("Receive message %x at node %s from: %s to: %s\n", zMsg.Id, z.Id(), hex.EncodeToString(zMsg.From), hex.EncodeToString(zMsg.To))
 			return message, localNode, nodes, true
