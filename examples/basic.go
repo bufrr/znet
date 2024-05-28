@@ -24,7 +24,7 @@ func main() {
 	sl = append(sl, seed)
 	znets := make([]*znode.Znode, 0)
 
-	vlcports := []string{"8010", "8020", "8030", "8040", "8050", "8051", "8060", "8070", "8080", "8090", "8100"}
+	vlcports := []string{"8010", "8020", "8030", "8040", "8051", "8060", "8070", "8080", "8090", "8100"}
 
 	for i := 0; i < 10; i++ {
 		h := sha3.New256().Sum([]byte("Hello" + string(rune(i))))
