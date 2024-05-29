@@ -193,46 +193,51 @@ func (z *Znode) Id() string {
 }
 
 func (z *Znode) handleWsZMsg(msg []byte) error {
-	msgId, _ := util.RandBytes(32)
-	c, _ := z.getClock()
-	pbc := pb.Clock{Values: c}
-
-	ci := pb.ClockInfo{
-		Clock:     &pbc,
-		NodeId:    z.keyPair.Id(),
-		MessageId: msgId,
-		Count:     2,
-		CreateAt:  1243,
-	}
-
 	out := new(pb.OutboundMsg)
 	err := proto.Unmarshal(msg, out)
 	if err != nil {
 		return err
 	}
 
-	chat := pb.ZChat{
-		MessageData: out.Data,
-		Clock:       &ci,
-	}
-	d, err := proto.Marshal(&chat)
-	if err != nil {
-		return err
+	d := out.Data
+	if out.Type == pb.ZType_Z_TYPE_ZCHAT {
+		msgId, _ := util.RandBytes(32)
+		c, _ := z.getClock()
+		pbc := pb.Clock{Values: c}
+
+		ci := pb.ClockInfo{
+			Clock:     &pbc,
+			NodeId:    z.keyPair.Id(),
+			MessageId: msgId,
+			Count:     2,
+			CreateAt:  1243,
+		}
+
+		chat := pb.ZChat{
+			MessageData: out.Data,
+			Clock:       &ci,
+		}
+		d, err = proto.Marshal(&chat)
+		if err != nil {
+			return err
+		}
 	}
 
 	zMsg := &pb.ZMessage{
 		Id:   out.Id,
 		Data: d,
 		To:   out.To,
-		Type: pb.ZType_Z_TYPE_ZCHAT,
+		Type: out.Type,
 	}
 
 	b, _ := proto.Marshal(zMsg)
+	zm := b
 
-	// read local vlc first
-	zm, err := z.readVlc(b, true)
-	if err != nil {
-		return err
+	if zMsg.Type == pb.ZType_Z_TYPE_ZCHAT {
+		zm, err = z.readVlc(b, true)
+		if err != nil {
+			return err
+		}
 	}
 
 	_, _, err = z.Nnet.SendBytesRelaySync(zm, zMsg.To)
@@ -280,12 +285,7 @@ func (z *Znode) ApplyBytesReceived() {
 			log.Fatal(err)
 		}
 
-		resp, err := z.readVlc(msg, false)
-		if err != nil {
-			log.Fatal(err)
-		}
-
-		_, err = z.Nnet.SendBytesRelayReply(msgID, resp, srcID)
+		_, err = z.Nnet.SendBytesRelayReply(msgID, []byte{}, srcID)
 		if err != nil {
 			log.Printf("SendBytesRelayReply err: %v\n", err)
 		}
@@ -295,30 +295,39 @@ func (z *Znode) ApplyBytesReceived() {
 			z.msgBuffer[id] = make(chan *pb.InboundMsg, 100)
 		}
 
-		zc := new(pb.ZClock)
-		err = proto.Unmarshal(zmsg.Data, zc)
-		if err != nil {
-			log.Printf("parse z msg err: %s", err)
-			return nil, false
-		}
-		et := new(pb.EventTrigger)
-		err = proto.Unmarshal(zc.Data, et)
-		if err != nil {
-			log.Printf("parse z clock err: %s", err)
-			return nil, false
-		}
+		data := zmsg.Data
+		if zmsg.Type == pb.ZType_Z_TYPE_ZCHAT || zmsg.Type == pb.ZType_Z_TYPE_CLOCK {
+			_, err = z.readVlc(msg, false)
+			if err != nil {
+				log.Fatal(err)
+			}
 
-		zchat := new(pb.ZChat)
-		err = proto.Unmarshal(et.Message.Data, zchat)
-		if err != nil {
-			log.Printf("parse zchat err: %s", err)
-			return nil, false
+			zc := new(pb.ZClock)
+			err = proto.Unmarshal(zmsg.Data, zc)
+			if err != nil {
+				log.Printf("parse z msg err: %s", err)
+				return nil, false
+			}
+			et := new(pb.EventTrigger)
+			err = proto.Unmarshal(zc.Data, et)
+			if err != nil {
+				log.Printf("parse z clock err: %s", err)
+				return nil, false
+			}
+
+			zchat := new(pb.ZChat)
+			err = proto.Unmarshal(et.Message.Data, zchat)
+			if err != nil {
+				log.Printf("parse zchat err: %s", err)
+				return nil, false
+			}
+			data = zchat.MessageData
 		}
 
 		inboundMsg := new(pb.InboundMsg)
 		inboundMsg.Id = zmsg.Id
 		inboundMsg.From = zmsg.From
-		inboundMsg.Data = zchat.MessageData
+		inboundMsg.Data = data
 
 		z.msgBuffer[id] <- inboundMsg
 
@@ -369,8 +378,8 @@ func (z *Znode) ApplyVlcOnRelay() {
 				return message, localNode, nodes, false
 			}
 
-			if zMsg.Type != pb.ZType_Z_TYPE_ZCHAT {
-				log.Printf("zMsg type is not Z_TYPE_ZCHAT")
+			if zMsg.Type != pb.ZType_Z_TYPE_ZCHAT && zMsg.Type != pb.ZType_Z_TYPE_CLOCK {
+				//log.Printf("zMsg type is not Z_TYPE_ZCHAT or Z_TYPE_CLOCK\n")
 				return message, localNode, nodes, false
 			}
 

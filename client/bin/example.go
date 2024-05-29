@@ -29,7 +29,7 @@ func main() {
 	}
 
 	addr2 := client2.Address()
-	err = client1.Send(addr2, []byte("hello hetu!"+strconv.FormatInt(rand.Int63(), 10)))
+	err = client1.Send(addr2, []byte("hello hetu!"+strconv.FormatInt(rand.Int63(), 10)), pb.ZType_Z_TYPE_ZCHAT)
 	if err != nil {
 		log.Fatal(err)
 	}

@@ -32,7 +32,7 @@ type Client struct {
 	config  *Config
 }
 
-func (c *Client) Send(address string, data []byte) error {
+func (c *Client) Send(address string, data []byte, zType pb.ZType) error {
 	if c.conn == nil {
 		return errors.New("ws not connected")
 	}
@@ -45,6 +45,7 @@ func (c *Client) Send(address string, data []byte) error {
 	outMsg.To = to
 	outMsg.Data = data
 	outMsg.Id, _ = util.RandBytes(32)
+	outMsg.Type = zType
 	m, _ := proto.Marshal(outMsg)
 	err = c.conn.WriteMessage(websocket.BinaryMessage, m)
 	if err != nil {

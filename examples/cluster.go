@@ -1,4 +1,4 @@
-package main
+package examples
 
 import (
 	"fmt"
@@ -13,10 +13,36 @@ import (
 
 const seed = "http://127.0.0.1:12345/rpc12345"
 
-func main() {
-	s := seedStart()
-	time.Sleep(3 * time.Second)
+func StartSeed() *znode.Znode {
+	h := sha3.New256().Sum([]byte("Hello" + string(rune(100))))
+	keypair, _ := dht.GenerateKeyPair(h[:32])
+	c := config.Config{
+		Transport: "tcp",
+		P2pPort:   uint16(12344),
+		Keypair:   keypair,
+		WsPort:    uint16(12346),
+		RpcPort:   uint16(12345),
+		UdpPort:   config.DefaultUdpPort,
+		VlcAddr:   "127.0.0.1:8050",
+		Domain:    "127.0.0.1",
+	}
 
+	znd, err := znode.NewZnode(c)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	znd.ApplyBytesReceived()
+	znd.ApplyNeighborAdded()
+	znd.ApplyNeighborRemoved()
+	znd.ApplyVlcOnRelay()
+
+	znd.Start(true)
+
+	return znd
+}
+
+func StartCluster(s *znode.Znode) {
 	p2pPort := 33333
 	wsPort := 23333
 	rpcPort := 13333
@@ -81,35 +107,4 @@ func main() {
 			return
 		}
 	}
-
-	select {}
-}
-
-func seedStart() *znode.Znode {
-	h := sha3.New256().Sum([]byte("Hello" + string(rune(100))))
-	keypair, _ := dht.GenerateKeyPair(h[:32])
-	c := config.Config{
-		Transport: "tcp",
-		P2pPort:   uint16(12344),
-		Keypair:   keypair,
-		WsPort:    uint16(12346),
-		RpcPort:   uint16(12345),
-		UdpPort:   config.DefaultUdpPort,
-		VlcAddr:   "127.0.0.1:8050",
-		Domain:    "127.0.0.1",
-	}
-
-	znd, err := znode.NewZnode(c)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	znd.ApplyBytesReceived()
-	znd.ApplyNeighborAdded()
-	znd.ApplyNeighborRemoved()
-	znd.ApplyVlcOnRelay()
-
-	znd.Start(true)
-
-	return znd
 }
