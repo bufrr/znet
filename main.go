@@ -36,7 +36,6 @@ func main() {
 		P2pPort:   uint16(*p2pPort),
 		Keypair:   keypair,
 		WsPort:    uint16(*wsPort),
-		UdpPort:   8050,
 		VlcAddr:   *vlcAddr,
 		RpcPort:   uint16(*rpcPort),
 		SeedList:  seedList,

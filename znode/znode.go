@@ -319,6 +319,7 @@ func (z *Znode) ApplyBytesReceived() {
 		inboundMsg.Id = zmsg.Id
 		inboundMsg.From = zmsg.From
 		inboundMsg.Data = zchat.MessageData
+
 		z.msgBuffer[id] <- inboundMsg
 
 		return msg, true

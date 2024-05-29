@@ -4,6 +4,7 @@ import (
 	"encoding/hex"
 	pb "github.com/bufrr/znet/protos"
 	"github.com/gorilla/websocket"
+	"google.golang.org/protobuf/proto"
 	"log"
 	"net"
 	"net/http"
@@ -73,8 +74,12 @@ func (ws *WsServer) vlcHandler(w http.ResponseWriter, r *http.Request) {
 	go func() {
 		for {
 			select {
-			case msg := <-ws.z.msgBuffer[id]:
-				err = conn.WriteMessage(websocket.BinaryMessage, msg.Data)
+			case inboundMsg := <-ws.z.msgBuffer[id]:
+				msg, err := proto.Marshal(inboundMsg)
+				if err != nil {
+					log.Printf("marshal inbound msg err: %s", err)
+				}
+				err = conn.WriteMessage(websocket.BinaryMessage, msg)
 				if err != nil {
 					log.Println("ws write err:", err)
 					return

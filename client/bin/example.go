@@ -34,9 +34,15 @@ func main() {
 		log.Fatal(err)
 	}
 
-	msg := <-client2.Receive
+	inboundMsg := <-client2.Receive
 
-	fmt.Println("msg: ", string(msg))
+	msg := new(pb.InboundMsg)
+	err = proto.Unmarshal(inboundMsg, msg)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	fmt.Println("msg: ", string(msg.Data))
 }
 
 func randomMsg(to string) []byte {
