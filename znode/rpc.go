@@ -187,6 +187,13 @@ func queryByKeyId(rs RpcServer, params map[string]interface{}, ctx context.Conte
 		}
 	}
 
+	id, ok := params["id"].(string)
+	if !ok {
+		return map[string]interface{}{
+			"error": "id is required",
+		}
+	}
+
 	index, ok := params["index"].(float64)
 	if !ok {
 		index = 0
@@ -194,9 +201,10 @@ func queryByKeyId(rs RpcServer, params map[string]interface{}, ctx context.Conte
 	q, _ := proto.Marshal(&pb.QueryByTableKeyID{LastPos: uint64(index)})
 
 	gateway := pb.ZGateway{
-		Type:   pb.GatewayType(gwt),
-		Method: pb.QueryMethod_QUERY_BY_TABLE_KEYID,
-		Data:   q,
+		Type:      pb.GatewayType(gwt),
+		Method:    pb.QueryMethod_QUERY_BY_TABLE_KEYID,
+		Data:      q,
+		RequestId: id,
 	}
 
 	gw, _ := proto.Marshal(&gateway)
