@@ -8,6 +8,7 @@ import (
 	pb "github.com/bufrr/znet/protos"
 	"google.golang.org/protobuf/proto"
 	"io"
+	"log"
 	"net"
 	"net/http"
 	"strconv"
@@ -221,10 +222,14 @@ func queryByKeyId(rs RpcServer, params map[string]interface{}, ctx context.Conte
 
 	data, _ := proto.Marshal(&innerMsg)
 
+	log.Printf("queryByKeyId: %s", hex.EncodeToString(data))
+
 	resp, err := rs.z.reqVlc(data)
 	if err != nil {
 		return nil
 	}
+
+	log.Printf("queryByKeyId resp: %s", hex.EncodeToString(resp))
 
 	inner := new(pb.Innermsg)
 	err = proto.Unmarshal(resp, inner)
