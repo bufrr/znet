@@ -226,6 +226,7 @@ func (z *Znode) handleWsZMsg(msg []byte) error {
 	zMsg := &pb.ZMessage{
 		Id:   out.Id,
 		Data: d,
+		From: out.From,
 		To:   out.To,
 		Type: out.Type,
 	}
