@@ -1,7 +1,36 @@
 # znet
 
-create mode:
-`go run main.go --id Hello0`
+ZNet is a p2p relay network with verifiable VLC (virtual logic clock) causal order.
+This system is currently in poc stage.
 
-node mode:
-`go run main.go --remote tcp://192.168.1.103:33333 --id Hello0 --p2p 33334 --ws 23334`
+## Install
+
+### build from source
+
+```shell
+git clone https://github.com/bufrr/znet.git
+cd znet
+make
+
+./build/znet -h
+```
+
+Run node with create mode:
+`go run main.go --id Hello0 --domain 127.0.0.1`
+
+Run node with join mode:
+`go run main.go --remote tcp://127.0.0.1:33333 --id Hello0 --p2p 33334 --ws 23334`
+
+# How to test
+
+```
+go run examples/bin/basic.go
+```
+
+# Benchmark
+
+```shell
+cd example
+go test -bench='^\QBenchmarkStartCluster\E$'
+```
+
